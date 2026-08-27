@@ -37,6 +37,9 @@
     },
     "description": {
       "type": "string"
+    },
+    "user": {
+      "type": "email"
     }
   }
 }
