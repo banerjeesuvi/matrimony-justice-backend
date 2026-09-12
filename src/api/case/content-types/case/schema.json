@@ -23,7 +23,19 @@
     "petitioner": {
       "type": "string"
     },
+    "petitionerEmail": {
+      "type": "email"
+    },
+    "petitionerPhone": {
+      "type": "string"
+    },
     "respondent": {
+      "type": "string"
+    },
+    "respondentEmail": {
+      "type": "email"
+    },
+    "respondentPhone": {
       "type": "string"
     },
     "state": {
@@ -40,6 +52,12 @@
     },
     "user": {
       "type": "email"
+    },
+    "documents": {
+      "type": "media",
+      "multiple": true,
+      "required": false,
+      "allowedTypes": ["images", "files", "videos", "audios"]
     }
   }
 }

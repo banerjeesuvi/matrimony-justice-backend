@@ -499,13 +499,21 @@ export interface ApiCaseCase extends Struct.CollectionTypeSchema {
       Schema.Attribute.Private;
     description: Schema.Attribute.String;
     district: Schema.Attribute.String;
+    documents: Schema.Attribute.Media<
+      'images' | 'files' | 'videos' | 'audios',
+      true
+    >;
     filingDate: Schema.Attribute.Date;
     locale: Schema.Attribute.String & Schema.Attribute.Private;
     localizations: Schema.Attribute.Relation<'oneToMany', 'api::case.case'> &
       Schema.Attribute.Private;
     petitioner: Schema.Attribute.String;
+    petitionerEmail: Schema.Attribute.Email;
+    petitionerPhone: Schema.Attribute.String;
     publishedAt: Schema.Attribute.DateTime;
     respondent: Schema.Attribute.String;
+    respondentEmail: Schema.Attribute.Email;
+    respondentPhone: Schema.Attribute.String;
     state: Schema.Attribute.String;
     updatedAt: Schema.Attribute.DateTime;
     updatedBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
