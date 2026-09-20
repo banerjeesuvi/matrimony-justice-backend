@@ -1,5 +1,8 @@
 /**
- * case controller — bind signed-in email on create; upload docs into media folders.
+ * case controller — bind signed-in email on create; upload into media folders:
+ *   documents: {userEmail}/document
+ *   petitioner pic: {userEmail}/{petitionerName}{documentId}
+ *   respondent pic: {userEmail}/{respondentName}{documentId}
  */
 
 import { factories } from '@strapi/strapi';
@@ -9,12 +12,52 @@ function asFileArray(filesField: unknown): unknown[] {
   return Array.isArray(filesField) ? filesField : [filesField];
 }
 
-/** Media folder name: ${caseNumber}_${caseDocumentId} */
-function caseMediaFolderName(caseNumber?: string | null, documentId?: string | null) {
-  const id = String(documentId || '').trim();
-  const number = String(caseNumber || '').trim();
-  if (number && id) return `${number}_${id}`;
-  return number || id || 'case';
+function filesFromField(
+  files: Record<string, unknown> | undefined,
+  name: string,
+): unknown[] {
+  if (!files) return [];
+  const direct = asFileArray(files[name]);
+  if (direct.length) return direct;
+  const collected: unknown[] = [];
+  for (const [key, value] of Object.entries(files)) {
+    for (const file of asFileArray(value)) {
+      const field = String(
+        (file as { fieldname?: string }).fieldname || key,
+      );
+      if (field === name) collected.push(file);
+    }
+  }
+  return collected;
+}
+
+function requestFiles(ctx: {
+  request: { files?: Record<string, unknown> };
+}): unknown[] {
+  const files = ctx.request.files ?? {};
+  return [
+    ...filesFromField(files, 'documents'),
+    ...filesFromField(files, 'files'),
+    ...filesFromField(files, 'avatar'),
+    ...filesFromField(files, 'file'),
+    ...filesFromField(files, 'image'),
+  ];
+}
+
+function partySegment(value: string) {
+  return (
+    value
+      .trim()
+      .replace(/\s+/g, '_')
+      .replace(/[\\/:*?"<>|]+/g, '-')
+      .replace(/_+/g, '_')
+      .replace(/^_|_$/g, '')
+      .slice(0, 180) || 'unknown'
+  );
+}
+
+function partyFolderName(partyName: string, documentId: string) {
+  return `${partySegment(partyName)}${String(documentId || '').trim()}`;
 }
 
 export default factories.createCoreController(
@@ -71,24 +114,23 @@ export default factories.createCoreController(
         status: 'published',
       });
 
-      const files = asFileArray(
-        (ctx.request as { files?: { documents?: unknown; files?: unknown } })
-          .files?.documents ??
-          (ctx.request as { files?: { documents?: unknown; files?: unknown } })
-            .files?.files,
-      );
+      const files = [
+        ...filesFromField(
+          (ctx.request as { files?: Record<string, unknown> }).files,
+          'documents',
+        ),
+        ...filesFromField(
+          (ctx.request as { files?: Record<string, unknown> }).files,
+          'files',
+        ),
+      ];
 
       if (files.length) {
-        const caseFolderId = caseMediaFolderName(
-          (created as { caseNumber?: string }).caseNumber,
-          (created as { documentId?: string }).documentId,
-        );
-
         const mediaService = strapi.service('api::case.case');
         const { files: uploaded } = await mediaService.uploadToCaseFolder({
           email,
-          caseId: caseFolderId,
-          files,
+          caseId: 'document',
+          files: files as Record<string, unknown>[],
         });
 
         if (uploaded.length) {
@@ -109,7 +151,8 @@ export default factories.createCoreController(
 
     /**
      * POST /api/cases/:documentId/documents
-     * Upload documents into {email}/{caseNumber}_{documentId}.
+     * Upload documents into {email}/document and party photos into
+     * {email}/{partyName}{documentId}.
      */
     async uploadDocuments(ctx) {
       try {
@@ -119,12 +162,115 @@ export default factories.createCoreController(
         return ctx.unauthorized('You must be signed in to upload documents.');
       }
 
-      const documentId = ctx.params.documentId as string;
-      const existing = await strapi.documents('api::case.case').findOne({
+      const documentId = String(ctx.params.documentId || '').trim();
+
+      // Signup posts the profile photo to /api/cases/avatar/documents.
+      // Settings Save posts profile fields to the same route (uploadDocuments is allowed).
+      if (documentId.toLowerCase() === 'avatar') {
+        const body = (ctx.request.body ?? {}) as Record<string, unknown>;
+        const avatarFiles = requestFiles(ctx);
+        const wantsProfile =
+          body.action === 'profile' ||
+          body.updateProfile === true ||
+          body.updateProfile === 'true' ||
+          typeof body.phone === 'string' ||
+          typeof body.firstName === 'string' ||
+          typeof body.lastName === 'string' ||
+          typeof body.address === 'string';
+
+        if (!avatarFiles.length && wantsProfile) {
+          const userId = (authUser as { id?: number | string } | undefined)?.id;
+          if (userId == null || userId === '') {
+            return ctx.unauthorized('You must be signed in.');
+          }
+
+          const data: Record<string, unknown> = {};
+          if (typeof body.phone === 'string') data.phone = body.phone.trim();
+          if (typeof body.firstName === 'string') data.firstName = body.firstName.trim();
+          if (typeof body.lastName === 'string') data.lastName = body.lastName.trim();
+          if (typeof body.address === 'string') data.address = body.address.trim();
+
+          if (Object.keys(data).length) {
+            try {
+              await strapi.db.query('plugin::users-permissions.user').update({
+                where: { id: userId },
+                data,
+              });
+            } catch {
+              const fallback: Record<string, unknown> = {};
+              if (typeof data.phone === 'string') fallback.phone = data.phone;
+              if (Object.keys(fallback).length) {
+                await strapi.db.query('plugin::users-permissions.user').update({
+                  where: { id: userId },
+                  data: fallback,
+                });
+              }
+            }
+          }
+
+          const user = await strapi.db.query('plugin::users-permissions.user').findOne({
+            where: { id: userId },
+            populate: ['avatar'],
+          });
+          if (user && typeof user === 'object') {
+            delete (user as { password?: string }).password;
+            delete (user as { resetPasswordToken?: string }).resetPasswordToken;
+            delete (user as { confirmationToken?: string }).confirmationToken;
+          }
+          ctx.body = { data: user };
+          return;
+        }
+
+        if (!avatarFiles.length) {
+          return ctx.badRequest('No avatar file was provided.');
+        }
+
+        const mediaService = strapi.service('api::case.case');
+        const { folderPath, files: uploaded } =
+          await mediaService.uploadToCaseFolder({
+            email,
+            caseId: 'avatar',
+            files: avatarFiles as Record<string, unknown>[],
+          });
+
+        const fileId = uploaded[0]?.id;
+        const userId = (authUser as { id?: number | string } | undefined)?.id;
+        if (fileId && userId != null) {
+          try {
+            await strapi.db.query('plugin::users-permissions.user').update({
+              where: { id: userId },
+              data: { avatar: fileId },
+            });
+          } catch (attachErr) {
+            strapi.log.warn(
+              '[case.uploadDocuments] Avatar file saved but user.avatar was not attached.',
+              attachErr,
+            );
+          }
+        }
+
+        ctx.body = {
+          data: {
+            folderPath,
+            files: uploaded,
+            avatar: uploaded[0] ?? null,
+          },
+        };
+        return;
+      }
+
+      let existing = await strapi.documents('api::case.case').findOne({
         documentId,
         status: 'published',
-        fields: ['caseNumber', 'user', 'documentId'],
+        populate: ['documents', 'petitionerPic', 'respondentPic'],
       });
+      if (!existing) {
+        existing = await strapi.documents('api::case.case').findOne({
+          documentId,
+          status: 'draft',
+          populate: ['documents', 'petitionerPic', 'respondentPic'],
+        });
+      }
 
       if (!existing) {
         return ctx.notFound('Case not found.');
@@ -137,53 +283,72 @@ export default factories.createCoreController(
         return ctx.forbidden('You can only upload documents to your own cases.');
       }
 
-      const files = asFileArray(
-        (ctx.request as { files?: { documents?: unknown; files?: unknown } })
-          .files?.documents ??
-          (ctx.request as { files?: { documents?: unknown; files?: unknown } })
-            .files?.files,
-      );
+      const requestFilesMap = (ctx.request as { files?: Record<string, unknown> })
+        .files;
+      const files = [
+        ...filesFromField(requestFilesMap, 'documents'),
+        ...filesFromField(requestFilesMap, 'files'),
+      ];
+      const petitionerPic = filesFromField(requestFilesMap, 'petitionerPic')[0];
+      const respondentPic = filesFromField(requestFilesMap, 'respondentPic')[0];
 
-      if (!files.length) {
+      if (!files.length && !petitionerPic && !respondentPic) {
         return ctx.badRequest('No documents were provided.');
       }
 
-      // Prefer caseNumber from multipart body (sent by Next), then DB entry.
-      const body = (ctx.request.body ?? {}) as { caseNumber?: string };
-      const caseNumberFromBody =
-        typeof body.caseNumber === 'string' ? body.caseNumber.trim() : '';
-      const caseNumberFromDb = String(
-        (existing as { caseNumber?: string }).caseNumber || '',
-      ).trim();
-
-      // Hard fallback via DB query if document service omits caseNumber.
-      let caseNumber = caseNumberFromBody || caseNumberFromDb;
-      if (!caseNumber) {
-        const row = await strapi.db.query('api::case.case').findOne({
-          where: { documentId },
-          select: ['caseNumber'],
-        });
-        caseNumber = String(row?.caseNumber || '').trim();
-      }
-
-      const caseFolderId = caseMediaFolderName(
-        caseNumber,
-        (existing as { documentId?: string }).documentId || documentId,
+      const body = (ctx.request.body ?? {}) as {
+        petitioner?: string;
+        respondent?: string;
+      };
+      const petitionerName = String(
+        body.petitioner ||
+          (existing as { petitioner?: string }).petitioner ||
+          'petitioner',
       );
+      const respondentName = String(
+        body.respondent ||
+          (existing as { respondent?: string }).respondent ||
+          'respondent',
+      );
+      const petitionerFolder = partyFolderName(petitionerName, documentId);
+      const respondentFolder = partyFolderName(respondentName, documentId);
 
       strapi.log.info(
-        `[case.uploadDocuments] folder=${caseFolderId} caseNumber=${caseNumber} documentId=${documentId}`,
+        `[case.uploadDocuments] folders=document,${petitionerFolder},${respondentFolder} documentId=${documentId}`,
       );
 
       const mediaService = strapi.service('api::case.case');
-      const { folderPath, files: uploaded } =
-        await mediaService.uploadToCaseFolder({
+      let folderPath = `${email}/document`;
+      let uploaded: { id: number | string }[] = [];
+      if (files.length) {
+        const result = await mediaService.uploadToCaseFolder({
           email,
-          caseId: caseFolderId,
+          caseId: 'document',
           files: files as Record<string, unknown>[],
         });
+        folderPath = result.folderPath;
+        uploaded = result.files;
+      }
 
-      // Append new uploads; do not replace existing documents.
+      const uploadedPetitioner = petitionerPic
+        ? (
+            await mediaService.uploadToCaseFolder({
+              email,
+              caseId: petitionerFolder,
+              files: [petitionerPic as Record<string, unknown>],
+            })
+          ).files
+        : [];
+      const uploadedRespondent = respondentPic
+        ? (
+            await mediaService.uploadToCaseFolder({
+              email,
+              caseId: respondentFolder,
+              files: [respondentPic as Record<string, unknown>],
+            })
+          ).files
+        : [];
+
       const withDocs = await strapi.documents('api::case.case').findOne({
         documentId,
         status: 'published',
@@ -198,19 +363,73 @@ export default factories.createCoreController(
         ...uploaded.map((f: { id: number | string }) => f.id),
       ];
 
-      await strapi.documents('api::case.case').update({
-        documentId,
-        data: {
-          documents: nextIds,
-        },
-        status: 'published',
-      });
+      const patch: Record<string, unknown> = {};
+      if (uploaded.length) {
+        patch.documents = nextIds;
+      }
+      if (uploadedPetitioner[0]?.id != null) {
+        patch.petitionerPic = uploadedPetitioner[0].id;
+      }
+      if (uploadedRespondent[0]?.id != null) {
+        patch.respondentPic = uploadedRespondent[0].id;
+      }
+
+      if (Object.keys(patch).length) {
+        try {
+          await strapi.documents('api::case.case').update({
+            documentId,
+            data: patch,
+            status: 'published',
+          });
+        } catch (attachErr) {
+          strapi.log.warn(
+            '[case.uploadDocuments] Files saved but case attach failed.',
+            attachErr,
+          );
+          if (uploaded.length) {
+            try {
+              await strapi.documents('api::case.case').update({
+                documentId,
+                data: { documents: nextIds },
+                status: 'published',
+              });
+            } catch {
+              // Files are already in the Media Library folder.
+            }
+          }
+        }
+      }
+
+      if (uploaded.length) {
+        const label =
+          String((existing as { caseNumber?: string }).caseNumber || '').trim() ||
+          'your case';
+        await strapi.service('api::notification.notification').notify({
+          user: email,
+          title: 'Document uploaded',
+          body:
+            uploaded.length === 1
+              ? `A document was added to case ${label}.`
+              : `${uploaded.length} documents were added to case ${label}.`,
+          type: 'document',
+          href: `/my-case/${documentId}`,
+          caseDocumentId: documentId,
+        });
+      }
 
       ctx.body = {
         data: {
           folderPath,
-          caseFolder: caseFolderId,
+          caseFolder: 'document',
+          petitionerFolderPath: uploadedPetitioner[0]
+            ? `${email}/${petitionerFolder}`
+            : undefined,
+          respondentFolderPath: uploadedRespondent[0]
+            ? `${email}/${respondentFolder}`
+            : undefined,
           files: uploaded,
+          petitionerPic: uploadedPetitioner[0] ?? null,
+          respondentPic: uploadedRespondent[0] ?? null,
         },
       };
       } catch (err) {

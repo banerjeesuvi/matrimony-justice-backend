@@ -1,5 +1,6 @@
 /**
- * case service — includes media-library folder helpers for case documents.
+ * case service — media-library folders:
+ *   {email}/document, {email}/{partyName}{documentId}, {email}/avatar
  */
 
 import { factories } from '@strapi/strapi';

@@ -504,21 +504,80 @@ export interface ApiCaseCase extends Struct.CollectionTypeSchema {
       true
     >;
     filingDate: Schema.Attribute.Date;
+    findings: Schema.Attribute.Blocks;
+    isMediation: Schema.Attribute.Boolean;
     locale: Schema.Attribute.String & Schema.Attribute.Private;
     localizations: Schema.Attribute.Relation<'oneToMany', 'api::case.case'> &
       Schema.Attribute.Private;
     petitioner: Schema.Attribute.String;
     petitionerEmail: Schema.Attribute.Email;
     petitionerPhone: Schema.Attribute.String;
+    petitionerPic: Schema.Attribute.Media<'images'>;
     publishedAt: Schema.Attribute.DateTime;
     respondent: Schema.Attribute.String;
     respondentEmail: Schema.Attribute.Email;
     respondentPhone: Schema.Attribute.String;
+    respondentPic: Schema.Attribute.Media<'images'>;
+    result: Schema.Attribute.Enumeration<
+      [
+        'Case Closed \u2013 Insufficient Evidence',
+        'Case Closed \u2013 Allegation Not Established',
+        'Case Dismissed / Closed',
+        'False Allegation Confirmed',
+      ]
+    >;
+    stage: Schema.Attribute.Enumeration<
+      [
+        'New Case',
+        'Evidence Collection ',
+        'In Review ',
+        'Investigation in Progress ',
+        'Completed',
+      ]
+    >;
     state: Schema.Attribute.String;
     updatedAt: Schema.Attribute.DateTime;
     updatedBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
       Schema.Attribute.Private;
     user: Schema.Attribute.Email;
+  };
+}
+
+export interface ApiNotificationNotification
+  extends Struct.CollectionTypeSchema {
+  collectionName: 'notifications';
+  info: {
+    displayName: 'Notification';
+    pluralName: 'notifications';
+    singularName: 'notification';
+  };
+  options: {
+    draftAndPublish: false;
+  };
+  attributes: {
+    body: Schema.Attribute.Text;
+    caseDocumentId: Schema.Attribute.String;
+    createdAt: Schema.Attribute.DateTime;
+    createdBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
+      Schema.Attribute.Private;
+    href: Schema.Attribute.String;
+    locale: Schema.Attribute.String & Schema.Attribute.Private;
+    localizations: Schema.Attribute.Relation<
+      'oneToMany',
+      'api::notification.notification'
+    > &
+      Schema.Attribute.Private;
+    publishedAt: Schema.Attribute.DateTime;
+    read: Schema.Attribute.Boolean & Schema.Attribute.DefaultTo<false>;
+    title: Schema.Attribute.String & Schema.Attribute.Required;
+    type: Schema.Attribute.Enumeration<
+      ['case', 'document', 'review', 'judgment', 'system']
+    > &
+      Schema.Attribute.DefaultTo<'system'>;
+    updatedAt: Schema.Attribute.DateTime;
+    updatedBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
+      Schema.Attribute.Private;
+    user: Schema.Attribute.Email & Schema.Attribute.Required;
   };
 }
 
@@ -980,6 +1039,8 @@ export interface PluginUsersPermissionsUser
     draftAndPublish: false;
   };
   attributes: {
+    address: Schema.Attribute.String;
+    avatar: Schema.Attribute.Media<'images'>;
     blocked: Schema.Attribute.Boolean & Schema.Attribute.DefaultTo<false>;
     confirmationToken: Schema.Attribute.String & Schema.Attribute.Private;
     confirmed: Schema.Attribute.Boolean & Schema.Attribute.DefaultTo<false>;
@@ -991,6 +1052,8 @@ export interface PluginUsersPermissionsUser
       Schema.Attribute.SetMinMaxLength<{
         minLength: 6;
       }>;
+    firstName: Schema.Attribute.String;
+    lastName: Schema.Attribute.String;
     locale: Schema.Attribute.String & Schema.Attribute.Private;
     localizations: Schema.Attribute.Relation<
       'oneToMany',
@@ -1035,6 +1098,7 @@ declare module '@strapi/strapi' {
       'admin::transfer-token-permission': AdminTransferTokenPermission;
       'admin::user': AdminUser;
       'api::case.case': ApiCaseCase;
+      'api::notification.notification': ApiNotificationNotification;
       'plugin::content-releases.release': PluginContentReleasesRelease;
       'plugin::content-releases.release-action': PluginContentReleasesReleaseAction;
       'plugin::i18n.locale': PluginI18NLocale;

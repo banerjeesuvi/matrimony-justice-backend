@@ -57,7 +57,53 @@
       "type": "media",
       "multiple": true,
       "required": false,
-      "allowedTypes": ["images", "files", "videos", "audios"]
+      "allowedTypes": [
+        "images",
+        "files",
+        "videos",
+        "audios"
+      ]
+    },
+    "petitionerPic": {
+      "type": "media",
+      "multiple": false,
+      "required": false,
+      "allowedTypes": [
+        "images"
+      ]
+    },
+    "respondentPic": {
+      "type": "media",
+      "multiple": false,
+      "required": false,
+      "allowedTypes": [
+        "images"
+      ]
+    },
+    "stage": {
+      "type": "enumeration",
+      "enum": [
+        "New Case",
+        "Evidence Collection ",
+        "In Review ",
+        "Investigation in Progress ",
+        "Completed"
+      ]
+    },
+    "result": {
+      "type": "enumeration",
+      "enum": [
+        "Case Closed – Insufficient Evidence",
+        "Case Closed – Allegation Not Established",
+        "Case Dismissed / Closed",
+        "False Allegation Confirmed"
+      ]
+    },
+    "findings": {
+      "type": "blocks"
+    },
+    "isMediation": {
+      "type": "boolean"
     }
   }
 }
