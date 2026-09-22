@@ -509,6 +509,8 @@ export interface ApiCaseCase extends Struct.CollectionTypeSchema {
     locale: Schema.Attribute.String & Schema.Attribute.Private;
     localizations: Schema.Attribute.Relation<'oneToMany', 'api::case.case'> &
       Schema.Attribute.Private;
+    matrimonyId: Schema.Attribute.String;
+    matrimonySource: Schema.Attribute.String;
     petitioner: Schema.Attribute.String;
     petitionerEmail: Schema.Attribute.Email;
     petitionerPhone: Schema.Attribute.String;

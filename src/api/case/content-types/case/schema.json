@@ -104,6 +104,12 @@
     },
     "isMediation": {
       "type": "boolean"
+    },
+    "matrimonyId": {
+      "type": "string"
+    },
+    "matrimonySource": {
+      "type": "string"
     }
   }
 }

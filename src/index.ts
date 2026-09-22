@@ -22,6 +22,35 @@ const PUBLIC_CASE_ACTIONS = [
   'api::case.case.findOne',
 ] as const;
 
+const PUBLIC_AUTH_ACTIONS = [
+  'plugin::users-permissions.auth.forgotPassword',
+  'plugin::users-permissions.auth.resetPassword',
+] as const;
+
+async function configurePasswordReset(strapi) {
+  const frontend = (process.env.FRONTEND_URL || 'http://localhost:3000').replace(
+    /\/$/,
+    '',
+  );
+  const resetUrl = `${frontend}/reset-password`;
+  const pluginStore = strapi.store({
+    type: 'plugin',
+    name: 'users-permissions',
+  });
+  const advanced = (await pluginStore.get({ key: 'advanced' })) || {};
+
+  if (advanced.email_reset_password !== resetUrl) {
+    await pluginStore.set({
+      key: 'advanced',
+      value: {
+        ...advanced,
+        email_reset_password: resetUrl,
+      },
+    });
+    strapi.log.info(`[bootstrap] Set password reset page to ${resetUrl}`);
+  }
+}
+
 export default {
   register({ strapi }) {
     const user = strapi.contentType('plugin::users-permissions.user');
@@ -83,7 +112,7 @@ export default {
       return;
     }
 
-    for (const action of PUBLIC_CASE_ACTIONS) {
+    for (const action of [...PUBLIC_CASE_ACTIONS, ...PUBLIC_AUTH_ACTIONS]) {
       const existing = await strapi.db
         .query('plugin::users-permissions.permission')
         .findOne({
@@ -103,5 +132,7 @@ export default {
       });
       strapi.log.info(`[bootstrap] Granted ${action} to Public role.`);
     }
+
+    await configurePasswordReset(strapi);
   },
 };
