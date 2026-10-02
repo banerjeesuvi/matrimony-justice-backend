@@ -12,9 +12,11 @@
     "start": "strapi start",
     "strapi": "strapi",
     "upgrade": "npx @strapi/upgrade latest",
-    "upgrade:dry": "npx @strapi/upgrade latest --dry"
+    "upgrade:dry": "npx @strapi/upgrade latest --dry",
+    "admin:clear-cache": "rm -rf node_modules/.strapi/vite .cache"
   },
   "dependencies": {
+    "@notum-cz/strapi-plugin-seo": "^2.0.12",
     "@strapi/plugin-cloud": "5.53.0",
     "@strapi/plugin-users-permissions": "5.53.0",
     "@strapi/strapi": "5.53.0",

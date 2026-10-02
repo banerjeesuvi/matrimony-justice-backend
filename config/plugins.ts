@@ -20,6 +20,10 @@ const config = ({ env }: Core.Config.Shared.ConfigParams): Core.Config.Plugin =>
       },
     },
   },
+  seo: {
+    enabled: true,
+    resolve: './node_modules/@notum-cz/strapi-plugin-seo',
+  },
 });
 
 export default config;

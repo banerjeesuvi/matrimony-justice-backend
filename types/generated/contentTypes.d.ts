@@ -492,6 +492,7 @@ export interface ApiCaseCase extends Struct.CollectionTypeSchema {
   };
   attributes: {
     caseNumber: Schema.Attribute.String;
+    caseTitle: Schema.Attribute.String;
     caseType: Schema.Attribute.String;
     courtComplex: Schema.Attribute.String;
     createdAt: Schema.Attribute.DateTime;
@@ -506,6 +507,14 @@ export interface ApiCaseCase extends Struct.CollectionTypeSchema {
     filingDate: Schema.Attribute.Date;
     findings: Schema.Attribute.Blocks;
     isMediation: Schema.Attribute.Boolean;
+    judgementDate: Schema.Attribute.Date;
+    judgementDocument: Schema.Attribute.Media<
+      'images' | 'files' | 'videos' | 'audios',
+      true
+    >;
+    legalFramework: Schema.Attribute.Enumeration<
+      ['IPC', 'CrPC', 'IEA', 'BNS', 'BNSS', 'BSA']
+    >;
     locale: Schema.Attribute.String & Schema.Attribute.Private;
     localizations: Schema.Attribute.Relation<'oneToMany', 'api::case.case'> &
       Schema.Attribute.Private;
@@ -514,12 +523,12 @@ export interface ApiCaseCase extends Struct.CollectionTypeSchema {
     petitioner: Schema.Attribute.String;
     petitionerEmail: Schema.Attribute.Email;
     petitionerPhone: Schema.Attribute.String;
-    petitionerPic: Schema.Attribute.Media<'images'>;
+    petitionerPic: Schema.Attribute.Media<'images', true>;
     publishedAt: Schema.Attribute.DateTime;
     respondent: Schema.Attribute.String;
     respondentEmail: Schema.Attribute.Email;
     respondentPhone: Schema.Attribute.String;
-    respondentPic: Schema.Attribute.Media<'images'>;
+    respondentPic: Schema.Attribute.Media<'images', true>;
     result: Schema.Attribute.Enumeration<
       [
         'Case Closed \u2013 Insufficient Evidence',
@@ -528,6 +537,9 @@ export interface ApiCaseCase extends Struct.CollectionTypeSchema {
         'False Allegation Confirmed',
       ]
     >;
+    sections: Schema.Attribute.Text;
+    seo: Schema.Attribute.Component<'shared.seo', false>;
+    slug: Schema.Attribute.String;
     stage: Schema.Attribute.Enumeration<
       [
         'New Case',

@@ -60,6 +60,52 @@ function partyFolderName(partyName: string, documentId: string) {
   return `${partySegment(partyName)}${String(documentId || '').trim()}`;
 }
 
+type PartyPicPlanItem =
+  | { t: 'e'; id: number | string }
+  | { t: 'n'; i: number };
+
+function parsePartyPicPlan(raw: unknown): PartyPicPlanItem[] | undefined {
+  if (raw == null || raw === '') return undefined;
+  let parsed: unknown = raw;
+  if (typeof raw === 'string') {
+    try {
+      parsed = JSON.parse(raw);
+    } catch {
+      return undefined;
+    }
+  }
+  if (!Array.isArray(parsed)) return undefined;
+  return parsed
+    .map((item) => {
+      if (!item || typeof item !== 'object') return null;
+      const row = item as { t?: string; id?: number | string; i?: number };
+      if (row.t === 'e' && row.id != null && row.id !== '') {
+        return { t: 'e' as const, id: row.id };
+      }
+      if (row.t === 'n' && typeof row.i === 'number') {
+        return { t: 'n' as const, i: row.i };
+      }
+      return null;
+    })
+    .filter((item): item is PartyPicPlanItem => Boolean(item));
+}
+
+function resolvePartyPicIds(
+  plan: PartyPicPlanItem[] | undefined,
+  uploaded: { id: number | string }[],
+): (number | string)[] | undefined {
+  if (plan === undefined) {
+    if (!uploaded.length) return undefined;
+    return uploaded.map((f) => f.id);
+  }
+  return plan
+    .map((item) => {
+      if (item.t === 'e') return item.id;
+      return uploaded[item.i]?.id;
+    })
+    .filter((id): id is number | string => id != null && id !== '');
+}
+
 export default factories.createCoreController(
   'api::case.case',
   ({ strapi }) => ({
@@ -91,6 +137,9 @@ export default factories.createCoreController(
         for (const key of [
           'caseNumber',
           'caseType',
+          'caseTitle',
+          'legalFramework',
+          'sections',
           'filingDate',
           'petitioner',
           'petitionerEmail',
@@ -289,17 +338,27 @@ export default factories.createCoreController(
         ...filesFromField(requestFilesMap, 'documents'),
         ...filesFromField(requestFilesMap, 'files'),
       ];
-      const petitionerPic = filesFromField(requestFilesMap, 'petitionerPic')[0];
-      const respondentPic = filesFromField(requestFilesMap, 'respondentPic')[0];
-
-      if (!files.length && !petitionerPic && !respondentPic) {
-        return ctx.badRequest('No documents were provided.');
-      }
-
+      const petitionerPics = filesFromField(requestFilesMap, 'petitionerPic');
+      const respondentPics = filesFromField(requestFilesMap, 'respondentPic');
       const body = (ctx.request.body ?? {}) as {
         petitioner?: string;
         respondent?: string;
+        petitionerPicPlan?: unknown;
+        respondentPicPlan?: unknown;
       };
+      const petitionerPlan = parsePartyPicPlan(body.petitionerPicPlan);
+      const respondentPlan = parsePartyPicPlan(body.respondentPicPlan);
+
+      if (
+        !files.length &&
+        !petitionerPics.length &&
+        !respondentPics.length &&
+        petitionerPlan === undefined &&
+        respondentPlan === undefined
+      ) {
+        return ctx.badRequest('No documents were provided.');
+      }
+
       const petitionerName = String(
         body.petitioner ||
           (existing as { petitioner?: string }).petitioner ||
@@ -330,21 +389,21 @@ export default factories.createCoreController(
         uploaded = result.files;
       }
 
-      const uploadedPetitioner = petitionerPic
+      const uploadedPetitioner = petitionerPics.length
         ? (
             await mediaService.uploadToCaseFolder({
               email,
               caseId: petitionerFolder,
-              files: [petitionerPic as Record<string, unknown>],
+              files: petitionerPics as Record<string, unknown>[],
             })
           ).files
         : [];
-      const uploadedRespondent = respondentPic
+      const uploadedRespondent = respondentPics.length
         ? (
             await mediaService.uploadToCaseFolder({
               email,
               caseId: respondentFolder,
-              files: [respondentPic as Record<string, unknown>],
+              files: respondentPics as Record<string, unknown>[],
             })
           ).files
         : [];
@@ -363,15 +422,24 @@ export default factories.createCoreController(
         ...uploaded.map((f: { id: number | string }) => f.id),
       ];
 
+      const nextPetitionerIds = resolvePartyPicIds(
+        petitionerPlan,
+        uploadedPetitioner,
+      );
+      const nextRespondentIds = resolvePartyPicIds(
+        respondentPlan,
+        uploadedRespondent,
+      );
+
       const patch: Record<string, unknown> = {};
       if (uploaded.length) {
         patch.documents = nextIds;
       }
-      if (uploadedPetitioner[0]?.id != null) {
-        patch.petitionerPic = uploadedPetitioner[0].id;
+      if (nextPetitionerIds !== undefined) {
+        patch.petitionerPic = nextPetitionerIds;
       }
-      if (uploadedRespondent[0]?.id != null) {
-        patch.respondentPic = uploadedRespondent[0].id;
+      if (nextRespondentIds !== undefined) {
+        patch.respondentPic = nextRespondentIds;
       }
 
       if (Object.keys(patch).length) {
@@ -428,8 +496,8 @@ export default factories.createCoreController(
             ? `${email}/${respondentFolder}`
             : undefined,
           files: uploaded,
-          petitionerPic: uploadedPetitioner[0] ?? null,
-          respondentPic: uploadedRespondent[0] ?? null,
+          petitionerPic: uploadedPetitioner,
+          respondentPic: uploadedRespondent,
         },
       };
       } catch (err) {

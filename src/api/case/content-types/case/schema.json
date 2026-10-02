@@ -11,11 +11,28 @@
   },
   "pluginOptions": {},
   "attributes": {
+    "caseTitle": {
+      "type": "string"
+    },
     "caseNumber": {
       "type": "string"
     },
     "caseType": {
       "type": "string"
+    },
+    "legalFramework": {
+      "type": "enumeration",
+      "enum": [
+        "IPC",
+        "CrPC",
+        "IEA",
+        "BNS",
+        "BNSS",
+        "BSA"
+      ]
+    },
+    "sections": {
+      "type": "text"
     },
     "filingDate": {
       "type": "date"
@@ -66,7 +83,7 @@
     },
     "petitionerPic": {
       "type": "media",
-      "multiple": false,
+      "multiple": true,
       "required": false,
       "allowedTypes": [
         "images"
@@ -74,7 +91,7 @@
     },
     "respondentPic": {
       "type": "media",
-      "multiple": false,
+      "multiple": true,
       "required": false,
       "allowedTypes": [
         "images"
@@ -110,6 +127,27 @@
     },
     "matrimonySource": {
       "type": "string"
+    },
+    "seo": {
+      "type": "component",
+      "component": "shared.seo",
+      "repeatable": false
+    },
+    "slug": {
+      "type": "string"
+    },
+    "judgementDate": {
+      "type": "date"
+    },
+    "judgementDocument": {
+      "type": "media",
+      "multiple": true,
+      "allowedTypes": [
+        "images",
+        "files",
+        "videos",
+        "audios"
+      ]
     }
   }
 }
