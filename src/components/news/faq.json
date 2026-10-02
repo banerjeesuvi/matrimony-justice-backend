@@ -1,0 +1,16 @@
+{
+  "collectionName": "components_news_faqs",
+  "info": {
+    "displayName": "FAQ",
+    "icon": "bulletList"
+  },
+  "attributes": {
+    "items": {
+      "type": "component",
+      "repeatable": true,
+      "component": "news.faq-item",
+      "required": true,
+      "min": 1
+    }
+  }
+}

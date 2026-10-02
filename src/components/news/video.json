@@ -1,0 +1,16 @@
+{
+  "collectionName": "components_news_videos",
+  "info": {
+    "displayName": "Video",
+    "icon": "play"
+  },
+  "attributes": {
+    "url": {
+      "type": "string",
+      "required": true
+    },
+    "caption": {
+      "type": "string"
+    }
+  }
+}

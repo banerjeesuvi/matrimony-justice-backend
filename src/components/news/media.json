@@ -1,0 +1,18 @@
+{
+  "collectionName": "components_news_media",
+  "info": {
+    "displayName": "Image",
+    "icon": "picture"
+  },
+  "attributes": {
+    "file": {
+      "type": "media",
+      "multiple": false,
+      "required": true,
+      "allowedTypes": ["images"]
+    },
+    "caption": {
+      "type": "string"
+    }
+  }
+}

@@ -1,0 +1,16 @@
+{
+  "collectionName": "components_news_quotes",
+  "info": {
+    "displayName": "Quote",
+    "icon": "quote"
+  },
+  "attributes": {
+    "quote": {
+      "type": "text",
+      "required": true
+    },
+    "attribution": {
+      "type": "string"
+    }
+  }
+}

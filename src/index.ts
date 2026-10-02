@@ -22,6 +22,21 @@ const PUBLIC_CASE_ACTIONS = [
   'api::case.case.findOne',
 ] as const;
 
+const PUBLIC_NEWS_ACTIONS = [
+  'api::news-article.news-article.find',
+  'api::news-article.news-article.findOne',
+  'api::news-category.news-category.find',
+  'api::news-category.news-category.findOne',
+  'api::news-tag.news-tag.find',
+  'api::news-tag.news-tag.findOne',
+  'api::author.author.find',
+  'api::author.author.findOne',
+] as const;
+
+const AUTHENTICATED_NEWS_ACTIONS = [
+  'api::news-article.news-article.create',
+] as const;
+
 const PUBLIC_AUTH_ACTIONS = [
   'plugin::users-permissions.auth.forgotPassword',
   'plugin::users-permissions.auth.resetPassword',
@@ -80,7 +95,7 @@ export default {
       return;
     }
 
-    for (const action of AUTHENTICATED_ACTIONS) {
+    for (const action of [...AUTHENTICATED_ACTIONS, ...AUTHENTICATED_NEWS_ACTIONS]) {
       const existing = await strapi.db
         .query('plugin::users-permissions.permission')
         .findOne({
@@ -112,7 +127,11 @@ export default {
       return;
     }
 
-    for (const action of [...PUBLIC_CASE_ACTIONS, ...PUBLIC_AUTH_ACTIONS]) {
+    for (const action of [
+      ...PUBLIC_CASE_ACTIONS,
+      ...PUBLIC_NEWS_ACTIONS,
+      ...PUBLIC_AUTH_ACTIONS,
+    ]) {
       const existing = await strapi.db
         .query('plugin::users-permissions.permission')
         .findOne({

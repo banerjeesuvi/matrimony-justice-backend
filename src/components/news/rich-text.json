@@ -1,0 +1,13 @@
+{
+  "collectionName": "components_news_rich_texts",
+  "info": {
+    "displayName": "Rich text",
+    "icon": "align-left"
+  },
+  "attributes": {
+    "body": {
+      "type": "blocks",
+      "required": true
+    }
+  }
+}
