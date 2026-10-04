@@ -1,5 +1,7 @@
 // import type { Core } from '@strapi/strapi';
 
+import { seedSampleNews } from './seed/sample-news';
+
 const AUTHENTICATED_ACTIONS = [
   'api::case.case.create',
   'api::case.case.find',
@@ -153,5 +155,12 @@ export default {
     }
 
     await configurePasswordReset(strapi);
+
+    try {
+      await seedSampleNews(strapi);
+    } catch (error) {
+      strapi.log.error('[seed] Failed to create sample news articles.');
+      strapi.log.error(error);
+    }
   },
 };
