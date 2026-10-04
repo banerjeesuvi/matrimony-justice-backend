@@ -1,6 +1,7 @@
 // import type { Core } from '@strapi/strapi';
 
 import { seedSampleNews } from './seed/sample-news';
+import { seedSampleJudgement } from './seed/sample-judgement';
 
 const AUTHENTICATED_ACTIONS = [
   'api::case.case.create',
@@ -160,6 +161,13 @@ export default {
       await seedSampleNews(strapi);
     } catch (error) {
       strapi.log.error('[seed] Failed to create sample news articles.');
+      strapi.log.error(error);
+    }
+
+    try {
+      await seedSampleJudgement(strapi);
+    } catch (error) {
+      strapi.log.error('[seed] Failed to write the sample judgment.');
       strapi.log.error(error);
     }
   },
