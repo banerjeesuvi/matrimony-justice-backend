@@ -1,0 +1,9 @@
+{
+  "collectionName": "components_services_page_highlights",
+  "info": { "displayName": "Highlight", "icon": "chartPie" },
+  "attributes": {
+    "value": { "type": "string", "required": true },
+    "label": { "type": "string", "required": true },
+    "detail": { "type": "string" }
+  }
+}

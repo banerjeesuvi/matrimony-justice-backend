@@ -2,6 +2,8 @@
 
 import { seedSampleNews } from './seed/sample-news';
 import { seedSampleJudgement } from './seed/sample-judgement';
+import { seedHomepage } from './seed/sample-homepage';
+import { seedPublicPages } from './seed/sample-public-pages';
 
 const AUTHENTICATED_ACTIONS = [
   'api::case.case.create',
@@ -38,6 +40,17 @@ const PUBLIC_NEWS_ACTIONS = [
 
 const AUTHENTICATED_NEWS_ACTIONS = [
   'api::news-article.news-article.create',
+] as const;
+
+const PUBLIC_HOME_ACTIONS = [
+  'api::homepage.homepage.find',
+  'api::header.header.find',
+  'api::about.about.find',
+  'api::services-page.services-page.find',
+  'api::service.service.find',
+  'api::service.service.findOne',
+  'api::testimonial.testimonial.find',
+  'api::testimonial.testimonial.findOne',
 ] as const;
 
 const PUBLIC_AUTH_ACTIONS = [
@@ -133,6 +146,7 @@ export default {
     for (const action of [
       ...PUBLIC_CASE_ACTIONS,
       ...PUBLIC_NEWS_ACTIONS,
+      ...PUBLIC_HOME_ACTIONS,
       ...PUBLIC_AUTH_ACTIONS,
     ]) {
       const existing = await strapi.db
@@ -168,6 +182,20 @@ export default {
       await seedSampleJudgement(strapi);
     } catch (error) {
       strapi.log.error('[seed] Failed to write the sample judgment.');
+      strapi.log.error(error);
+    }
+
+    try {
+      await seedHomepage(strapi);
+    } catch (error) {
+      strapi.log.error('[seed] Failed to publish the homepage.');
+      strapi.log.error(error);
+    }
+
+    try {
+      await seedPublicPages(strapi);
+    } catch (error) {
+      strapi.log.error('[seed] Failed to publish the shared header, about, or services page.');
       strapi.log.error(error);
     }
   },

@@ -1,0 +1,12 @@
+{
+  "collectionName": "components_about_principles",
+  "info": {
+    "displayName": "Principle",
+    "icon": "shield"
+  },
+  "attributes": {
+    "number": { "type": "string", "required": true },
+    "title": { "type": "string", "required": true },
+    "body": { "type": "text", "required": true }
+  }
+}

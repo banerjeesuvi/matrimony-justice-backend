@@ -1,0 +1,64 @@
+{
+  "kind": "singleType",
+  "collectionName": "abouts",
+  "info": {
+    "singularName": "about",
+    "pluralName": "abouts",
+    "displayName": "About"
+  },
+  "options": {
+    "draftAndPublish": true
+  },
+  "pluginOptions": {},
+  "attributes": {
+    "eyebrow": { "type": "string", "required": true },
+    "title": { "type": "string", "required": true },
+    "introduction": { "type": "text", "required": true },
+    "quote": { "type": "text" },
+    "quoteAttribution": { "type": "string" },
+    "image": {
+      "type": "media",
+      "multiple": false,
+      "required": false,
+      "allowedTypes": ["images"]
+    },
+    "imageCaptionTitle": { "type": "string" },
+    "imageCaption": { "type": "text" },
+    "imageLabel": { "type": "string" },
+    "milestones": {
+      "type": "component",
+      "repeatable": true,
+      "component": "about.milestone"
+    },
+    "principlesEyebrow": { "type": "string" },
+    "principlesHeading": { "type": "string" },
+    "principlesIntro": { "type": "text" },
+    "principleNoteTitle": { "type": "string" },
+    "principleNoteBody": { "type": "text" },
+    "principles": {
+      "type": "component",
+      "repeatable": true,
+      "component": "about.principle"
+    },
+    "leadersEyebrow": { "type": "string" },
+    "leadersHeading": { "type": "string" },
+    "leadersIntro": { "type": "text" },
+    "leaders": {
+      "type": "component",
+      "repeatable": true,
+      "component": "about.leader"
+    },
+    "ctaEyebrow": { "type": "string" },
+    "ctaTitle": { "type": "string" },
+    "ctaDescription": { "type": "text" },
+    "ctaPrimaryLabel": { "type": "string" },
+    "ctaPrimaryUrl": { "type": "string" },
+    "ctaSecondaryLabel": { "type": "string" },
+    "ctaSecondaryUrl": { "type": "string" },
+    "seo": {
+      "type": "component",
+      "repeatable": false,
+      "component": "shared.seo"
+    }
+  }
+}

@@ -1,0 +1,58 @@
+{
+  "kind": "singleType",
+  "collectionName": "services_pages",
+  "info": {
+    "singularName": "services-page",
+    "pluralName": "services-pages",
+    "displayName": "Services Page"
+  },
+  "options": { "draftAndPublish": true },
+  "pluginOptions": {},
+  "attributes": {
+    "heroKicker": { "type": "string" },
+    "heroSubtitle": { "type": "string" },
+    "heroImage": {
+      "type": "media",
+      "multiple": false,
+      "required": false,
+      "allowedTypes": ["images"]
+    },
+    "eyebrow": { "type": "string", "required": true },
+    "title": { "type": "string", "required": true },
+    "introduction": { "type": "text", "required": true },
+    "highlights": {
+      "type": "component",
+      "repeatable": true,
+      "component": "services-page.highlight"
+    },
+    "areasEyebrow": { "type": "string" },
+    "areasHeading": { "type": "string" },
+    "areasIntro": { "type": "text" },
+    "practiceAreas": {
+      "type": "component",
+      "repeatable": true,
+      "component": "services-page.practice-area"
+    },
+    "standardsEyebrow": { "type": "string" },
+    "standardsHeading": { "type": "string" },
+    "standardsIntro": { "type": "text" },
+    "standards": {
+      "type": "component",
+      "repeatable": true,
+      "component": "services-page.standard"
+    },
+    "ctaEyebrow": { "type": "string" },
+    "ctaTitle": { "type": "string" },
+    "ctaDescription": { "type": "text" },
+    "ctaPrimaryLabel": { "type": "string" },
+    "ctaPrimaryUrl": { "type": "string" },
+    "ctaSecondaryLabel": { "type": "string" },
+    "ctaSecondaryUrl": { "type": "string" },
+    "ctaNote": { "type": "string" },
+    "seo": {
+      "type": "component",
+      "repeatable": false,
+      "component": "shared.seo"
+    }
+  }
+}

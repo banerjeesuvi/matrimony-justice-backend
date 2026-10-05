@@ -1,0 +1,7 @@
+{
+  "collectionName": "components_services_page_bullets",
+  "info": { "displayName": "Bullet", "icon": "bulletList" },
+  "attributes": {
+    "text": { "type": "string", "required": true }
+  }
+}

@@ -1,0 +1,133 @@
+{
+  "kind": "singleType",
+  "collectionName": "homepages",
+  "info": {
+    "singularName": "homepage",
+    "pluralName": "homepages",
+    "displayName": "Homepage"
+  },
+  "options": {
+    "draftAndPublish": true
+  },
+  "pluginOptions": {},
+  "attributes": {
+    "heroEyebrow": {
+      "type": "string",
+      "required": true
+    },
+    "heroTitleBefore": {
+      "type": "string",
+      "required": true
+    },
+    "heroTitleHighlight": {
+      "type": "string",
+      "required": true
+    },
+    "heroTitleAfter": {
+      "type": "string",
+      "required": true
+    },
+    "heroDescription": {
+      "type": "text",
+      "required": true
+    },
+    "primaryButtonLabel": {
+      "type": "string",
+      "required": true
+    },
+    "primaryButtonUrl": {
+      "type": "string",
+      "required": true
+    },
+    "secondaryButtonLabel": {
+      "type": "string",
+      "required": true
+    },
+    "secondaryButtonUrl": {
+      "type": "string",
+      "required": true
+    },
+    "heroImage": {
+      "type": "media",
+      "multiple": false,
+      "required": false,
+      "allowedTypes": ["images"]
+    },
+    "heroBadgeTitle": {
+      "type": "string"
+    },
+    "heroBadgeText": {
+      "type": "string"
+    },
+    "stats": {
+      "type": "component",
+      "repeatable": true,
+      "component": "home.stat"
+    },
+    "servicesEyebrow": {
+      "type": "string"
+    },
+    "servicesHeading": {
+      "type": "string"
+    },
+    "storiesEyebrow": {
+      "type": "string"
+    },
+    "storiesHeading": {
+      "type": "string"
+    },
+    "ctaTitle": {
+      "type": "string"
+    },
+    "ctaDescription": {
+      "type": "text"
+    },
+    "ctaPrimaryLabel": {
+      "type": "string"
+    },
+    "ctaPrimaryUrl": {
+      "type": "string"
+    },
+    "ctaSecondaryLabel": {
+      "type": "string"
+    },
+    "ctaSecondaryUrl": {
+      "type": "string"
+    },
+    "footerAbout": {
+      "type": "text"
+    },
+    "footerEmail": {
+      "type": "string"
+    },
+    "footerPhone": {
+      "type": "string"
+    },
+    "footerAddress": {
+      "type": "string"
+    },
+    "copyright": {
+      "type": "string"
+    },
+    "platformLinks": {
+      "type": "component",
+      "repeatable": true,
+      "component": "home.link"
+    },
+    "supportLinks": {
+      "type": "component",
+      "repeatable": true,
+      "component": "home.link"
+    },
+    "legalLinks": {
+      "type": "component",
+      "repeatable": true,
+      "component": "home.link"
+    },
+    "seo": {
+      "type": "component",
+      "repeatable": false,
+      "component": "shared.seo"
+    }
+  }
+}

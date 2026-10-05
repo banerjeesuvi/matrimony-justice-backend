@@ -1,0 +1,21 @@
+{
+  "collectionName": "components_about_leaders",
+  "info": {
+    "displayName": "Leader",
+    "icon": "user"
+  },
+  "attributes": {
+    "initials": { "type": "string" },
+    "name": { "type": "string", "required": true },
+    "role": { "type": "string" },
+    "credential": { "type": "string" },
+    "bio": { "type": "text" },
+    "tags": { "type": "text" },
+    "photo": {
+      "type": "media",
+      "multiple": false,
+      "required": false,
+      "allowedTypes": ["images"]
+    }
+  }
+}

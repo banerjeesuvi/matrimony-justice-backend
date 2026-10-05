@@ -1,5 +1,72 @@
 import type { Schema, Struct } from '@strapi/strapi';
 
+export interface AboutLeader extends Struct.ComponentSchema {
+  collectionName: 'components_about_leaders';
+  info: {
+    displayName: 'Leader';
+    icon: 'user';
+  };
+  attributes: {
+    bio: Schema.Attribute.Text;
+    credential: Schema.Attribute.String;
+    initials: Schema.Attribute.String;
+    name: Schema.Attribute.String & Schema.Attribute.Required;
+    photo: Schema.Attribute.Media<'images'>;
+    role: Schema.Attribute.String;
+    tags: Schema.Attribute.Text;
+  };
+}
+
+export interface AboutMilestone extends Struct.ComponentSchema {
+  collectionName: 'components_about_milestones';
+  info: {
+    displayName: 'Milestone';
+    icon: 'flag';
+  };
+  attributes: {
+    body: Schema.Attribute.Text & Schema.Attribute.Required;
+    title: Schema.Attribute.String & Schema.Attribute.Required;
+    value: Schema.Attribute.String & Schema.Attribute.Required;
+  };
+}
+
+export interface AboutPrinciple extends Struct.ComponentSchema {
+  collectionName: 'components_about_principles';
+  info: {
+    displayName: 'Principle';
+    icon: 'shield';
+  };
+  attributes: {
+    body: Schema.Attribute.Text & Schema.Attribute.Required;
+    number: Schema.Attribute.String & Schema.Attribute.Required;
+    title: Schema.Attribute.String & Schema.Attribute.Required;
+  };
+}
+
+export interface HomeLink extends Struct.ComponentSchema {
+  collectionName: 'components_home_links';
+  info: {
+    displayName: 'Link';
+    icon: 'link';
+  };
+  attributes: {
+    label: Schema.Attribute.String & Schema.Attribute.Required;
+    url: Schema.Attribute.String & Schema.Attribute.Required;
+  };
+}
+
+export interface HomeStat extends Struct.ComponentSchema {
+  collectionName: 'components_home_stats';
+  info: {
+    displayName: 'Stat';
+    icon: 'chartPie';
+  };
+  attributes: {
+    label: Schema.Attribute.String & Schema.Attribute.Required;
+    value: Schema.Attribute.String & Schema.Attribute.Required;
+  };
+}
+
 export interface NewsFaq extends Struct.ComponentSchema {
   collectionName: 'components_news_faqs';
   info: {
@@ -77,6 +144,72 @@ export interface NewsVideo extends Struct.ComponentSchema {
   };
 }
 
+export interface ServicesPageBullet extends Struct.ComponentSchema {
+  collectionName: 'components_services_page_bullets';
+  info: {
+    displayName: 'Bullet';
+    icon: 'bulletList';
+  };
+  attributes: {
+    text: Schema.Attribute.String & Schema.Attribute.Required;
+  };
+}
+
+export interface ServicesPageHighlight extends Struct.ComponentSchema {
+  collectionName: 'components_services_page_highlights';
+  info: {
+    displayName: 'Highlight';
+    icon: 'chartPie';
+  };
+  attributes: {
+    detail: Schema.Attribute.String;
+    label: Schema.Attribute.String & Schema.Attribute.Required;
+    value: Schema.Attribute.String & Schema.Attribute.Required;
+  };
+}
+
+export interface ServicesPagePracticeArea extends Struct.ComponentSchema {
+  collectionName: 'components_services_page_areas';
+  info: {
+    displayName: 'Practice area';
+    icon: 'briefcase';
+  };
+  attributes: {
+    badge: Schema.Attribute.String;
+    body: Schema.Attribute.Text & Schema.Attribute.Required;
+    bullets: Schema.Attribute.Component<'services-page.bullet', true>;
+    ctaLabel: Schema.Attribute.String;
+    ctaUrl: Schema.Attribute.String;
+    meta: Schema.Attribute.String;
+    number: Schema.Attribute.String & Schema.Attribute.Required;
+    title: Schema.Attribute.String & Schema.Attribute.Required;
+  };
+}
+
+export interface ServicesPageStandard extends Struct.ComponentSchema {
+  collectionName: 'components_services_page_standards';
+  info: {
+    displayName: 'Standard';
+    icon: 'check';
+  };
+  attributes: {
+    body: Schema.Attribute.Text & Schema.Attribute.Required;
+    title: Schema.Attribute.String & Schema.Attribute.Required;
+  };
+}
+
+export interface SharedNavLink extends Struct.ComponentSchema {
+  collectionName: 'components_shared_nav_links';
+  info: {
+    displayName: 'Nav link';
+    icon: 'link';
+  };
+  attributes: {
+    label: Schema.Attribute.String & Schema.Attribute.Required;
+    url: Schema.Attribute.String & Schema.Attribute.Required;
+  };
+}
+
 export interface SharedOpenGraph extends Struct.ComponentSchema {
   collectionName: 'components_shared_open_graphs';
   info: {
@@ -131,12 +264,22 @@ export interface SharedSeo extends Struct.ComponentSchema {
 declare module '@strapi/strapi' {
   export namespace Public {
     export interface ComponentSchemas {
+      'about.leader': AboutLeader;
+      'about.milestone': AboutMilestone;
+      'about.principle': AboutPrinciple;
+      'home.link': HomeLink;
+      'home.stat': HomeStat;
       'news.faq': NewsFaq;
       'news.faq-item': NewsFaqItem;
       'news.media': NewsMedia;
       'news.quote': NewsQuote;
       'news.rich-text': NewsRichText;
       'news.video': NewsVideo;
+      'services-page.bullet': ServicesPageBullet;
+      'services-page.highlight': ServicesPageHighlight;
+      'services-page.practice-area': ServicesPagePracticeArea;
+      'services-page.standard': ServicesPageStandard;
+      'shared.nav-link': SharedNavLink;
       'shared.open-graph': SharedOpenGraph;
       'shared.seo': SharedSeo;
     }

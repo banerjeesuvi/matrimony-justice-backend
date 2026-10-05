@@ -1,0 +1,8 @@
+{
+  "collectionName": "components_services_page_standards",
+  "info": { "displayName": "Standard", "icon": "check" },
+  "attributes": {
+    "title": { "type": "string", "required": true },
+    "body": { "type": "text", "required": true }
+  }
+}

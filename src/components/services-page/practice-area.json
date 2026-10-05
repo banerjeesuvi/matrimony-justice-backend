@@ -1,0 +1,18 @@
+{
+  "collectionName": "components_services_page_areas",
+  "info": { "displayName": "Practice area", "icon": "briefcase" },
+  "attributes": {
+    "number": { "type": "string", "required": true },
+    "badge": { "type": "string" },
+    "title": { "type": "string", "required": true },
+    "body": { "type": "text", "required": true },
+    "bullets": {
+      "type": "component",
+      "repeatable": true,
+      "component": "services-page.bullet"
+    },
+    "meta": { "type": "string" },
+    "ctaLabel": { "type": "string" },
+    "ctaUrl": { "type": "string" }
+  }
+}

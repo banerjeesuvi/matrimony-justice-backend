@@ -1,0 +1,12 @@
+{
+  "collectionName": "components_about_milestones",
+  "info": {
+    "displayName": "Milestone",
+    "icon": "flag"
+  },
+  "attributes": {
+    "value": { "type": "string", "required": true },
+    "title": { "type": "string", "required": true },
+    "body": { "type": "text", "required": true }
+  }
+}
