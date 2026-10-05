@@ -1,0 +1,113 @@
+{
+  "kind": "singleType",
+  "collectionName": "contact_pages",
+  "info": {
+    "singularName": "contact-page",
+    "pluralName": "contact-pages",
+    "displayName": "Contact Page"
+  },
+  "options": { "draftAndPublish": true },
+  "pluginOptions": {},
+  "attributes": {
+    "eyebrow": { "type": "string", "required": true },
+    "title": { "type": "string", "required": true },
+    "introduction": { "type": "text", "required": true },
+    "standbyLabel": { "type": "string" },
+    "callbackValue": { "type": "string" },
+    "callbackLabel": { "type": "string" },
+    "protocolNote": { "type": "string" },
+    "trustItems": {
+      "type": "component",
+      "repeatable": true,
+      "component": "contact.trust-item"
+    },
+    "formTitle": { "type": "string", "required": true },
+    "formIntro": { "type": "text" },
+    "disputeTypes": {
+      "type": "component",
+      "repeatable": true,
+      "component": "contact.choice"
+    },
+    "caseStages": {
+      "type": "component",
+      "repeatable": true,
+      "component": "contact.choice"
+    },
+    "urgencyLevels": {
+      "type": "component",
+      "repeatable": true,
+      "component": "contact.choice"
+    },
+    "summaryNote": { "type": "string" },
+    "fileLabel": { "type": "string" },
+    "fileHelp": { "type": "string" },
+    "fileHint": { "type": "string" },
+    "consentText": { "type": "text", "required": true },
+    "submitLabel": { "type": "string", "required": true },
+    "successMessage": { "type": "text", "required": true },
+    "emergencyBadge": { "type": "string" },
+    "emergencyTitle": { "type": "string" },
+    "emergencyBody": { "type": "text" },
+    "phoneLabel": { "type": "string" },
+    "phoneDisplay": { "type": "string" },
+    "phoneUrl": { "type": "string" },
+    "whatsappLabel": { "type": "string" },
+    "whatsappDisplay": { "type": "string" },
+    "whatsappUrl": { "type": "string" },
+    "chambersTitle": { "type": "string" },
+    "chambersSubtitle": { "type": "string" },
+    "addressLabel": { "type": "string" },
+    "address": { "type": "text" },
+    "hoursLabel": { "type": "string" },
+    "hours": { "type": "string" },
+    "hoursNote": { "type": "string" },
+    "mailLabel": { "type": "string" },
+    "emails": {
+      "type": "component",
+      "repeatable": true,
+      "component": "contact.email"
+    },
+    "mapLabel": { "type": "string" },
+    "mapBadge": { "type": "string" },
+    "mapImage": {
+      "type": "media",
+      "multiple": false,
+      "required": false,
+      "allowedTypes": ["images"]
+    },
+    "faqTitle": { "type": "string" },
+    "faqIntro": { "type": "string" },
+    "faqs": {
+      "type": "component",
+      "repeatable": true,
+      "component": "contact.faq"
+    },
+    "bandEyebrow": { "type": "string" },
+    "bandTitle": { "type": "string" },
+    "bandBody": { "type": "text" },
+    "bandStats": {
+      "type": "component",
+      "repeatable": true,
+      "component": "contact.stat"
+    },
+    "bandImage": {
+      "type": "media",
+      "multiple": false,
+      "required": false,
+      "allowedTypes": ["images"]
+    },
+    "charterTitle": { "type": "string" },
+    "charterBody": { "type": "text" },
+    "closingTitle": { "type": "string" },
+    "closingBody": { "type": "text" },
+    "closingPrimaryLabel": { "type": "string" },
+    "closingPrimaryUrl": { "type": "string" },
+    "closingSecondaryLabel": { "type": "string" },
+    "closingSecondaryUrl": { "type": "string" },
+    "seo": {
+      "type": "component",
+      "repeatable": false,
+      "component": "shared.seo"
+    }
+  }
+}

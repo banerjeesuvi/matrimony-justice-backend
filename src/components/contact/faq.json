@@ -1,0 +1,8 @@
+{
+  "collectionName": "components_contact_faqs",
+  "info": { "displayName": "FAQ", "icon": "question" },
+  "attributes": {
+    "question": { "type": "string", "required": true },
+    "answer": { "type": "text", "required": true }
+  }
+}

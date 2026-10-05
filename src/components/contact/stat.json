@@ -1,0 +1,8 @@
+{
+  "collectionName": "components_contact_stats",
+  "info": { "displayName": "Stat", "icon": "chartPie" },
+  "attributes": {
+    "value": { "type": "string", "required": true },
+    "label": { "type": "string", "required": true }
+  }
+}

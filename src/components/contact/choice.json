@@ -1,0 +1,7 @@
+{
+  "collectionName": "components_contact_choices",
+  "info": { "displayName": "Choice", "icon": "bulletList" },
+  "attributes": {
+    "label": { "type": "string", "required": true }
+  }
+}

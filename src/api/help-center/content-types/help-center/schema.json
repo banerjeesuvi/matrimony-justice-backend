@@ -1,0 +1,73 @@
+{
+  "kind": "singleType",
+  "collectionName": "help_centers",
+  "info": {
+    "singularName": "help-center",
+    "pluralName": "help-centers",
+    "displayName": "Help Center"
+  },
+  "options": {
+    "draftAndPublish": true
+  },
+  "pluginOptions": {},
+  "attributes": {
+    "breadcrumbHomeLabel": { "type": "string", "required": true },
+    "breadcrumbHomeUrl": { "type": "string", "required": true },
+    "breadcrumbCurrent": { "type": "string", "required": true },
+    "badge": { "type": "string", "required": true },
+    "title": { "type": "string", "required": true },
+    "introduction": { "type": "text", "required": true },
+    "handbookLabel": { "type": "string", "required": true },
+    "deskLabel": { "type": "string", "required": true },
+    "deskUrl": { "type": "string", "required": true },
+    "searchPlaceholder": { "type": "string", "required": true },
+    "filters": {
+      "type": "component",
+      "repeatable": true,
+      "component": "help-center.filter"
+    },
+    "progressionTitle": { "type": "string", "required": true },
+    "progressionIntro": { "type": "text", "required": true },
+    "progressionBadge": { "type": "string" },
+    "steps": {
+      "type": "component",
+      "repeatable": true,
+      "component": "help-center.step"
+    },
+    "progressionNote": { "type": "text" },
+    "progressionEmphasis": { "type": "string" },
+    "progressionLinkLabel": { "type": "string" },
+    "progressionLinkUrl": { "type": "string" },
+    "guidesEyebrow": { "type": "string" },
+    "guidesTitle": { "type": "string", "required": true },
+    "printLabel": { "type": "string" },
+    "guides": {
+      "type": "component",
+      "repeatable": true,
+      "component": "help-center.guide"
+    },
+    "faqEyebrow": { "type": "string" },
+    "faqTitle": { "type": "string", "required": true },
+    "faqCountLabel": { "type": "string" },
+    "faqs": {
+      "type": "component",
+      "repeatable": true,
+      "component": "help-center.faq"
+    },
+    "emptyMessage": { "type": "text" },
+    "supportEyebrow": { "type": "string" },
+    "supportTitle": { "type": "string", "required": true },
+    "supportActions": {
+      "type": "component",
+      "repeatable": true,
+      "component": "help-center.action"
+    },
+    "noticeLabel": { "type": "string", "required": true },
+    "noticeBody": { "type": "text", "required": true },
+    "seo": {
+      "type": "component",
+      "repeatable": false,
+      "component": "shared.seo"
+    }
+  }
+}

@@ -1,0 +1,12 @@
+{
+  "collectionName": "components_help_center_filters",
+  "info": {
+    "displayName": "Help filter",
+    "icon": "filter"
+  },
+  "options": {},
+  "attributes": {
+    "key": { "type": "string", "required": true },
+    "label": { "type": "string", "required": true }
+  }
+}

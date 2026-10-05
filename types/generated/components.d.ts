@@ -43,6 +43,155 @@ export interface AboutPrinciple extends Struct.ComponentSchema {
   };
 }
 
+export interface ContactChoice extends Struct.ComponentSchema {
+  collectionName: 'components_contact_choices';
+  info: {
+    displayName: 'Choice';
+    icon: 'bulletList';
+  };
+  attributes: {
+    label: Schema.Attribute.String & Schema.Attribute.Required;
+  };
+}
+
+export interface ContactEmail extends Struct.ComponentSchema {
+  collectionName: 'components_contact_emails';
+  info: {
+    displayName: 'Email';
+    icon: 'envelop';
+  };
+  attributes: {
+    address: Schema.Attribute.Email & Schema.Attribute.Required;
+  };
+}
+
+export interface ContactFaq extends Struct.ComponentSchema {
+  collectionName: 'components_contact_faqs';
+  info: {
+    displayName: 'FAQ';
+    icon: 'question';
+  };
+  attributes: {
+    answer: Schema.Attribute.Text & Schema.Attribute.Required;
+    question: Schema.Attribute.String & Schema.Attribute.Required;
+  };
+}
+
+export interface ContactStat extends Struct.ComponentSchema {
+  collectionName: 'components_contact_stats';
+  info: {
+    displayName: 'Stat';
+    icon: 'chartPie';
+  };
+  attributes: {
+    label: Schema.Attribute.String & Schema.Attribute.Required;
+    value: Schema.Attribute.String & Schema.Attribute.Required;
+  };
+}
+
+export interface ContactTrustItem extends Struct.ComponentSchema {
+  collectionName: 'components_contact_trust_items';
+  info: {
+    displayName: 'Trust item';
+    icon: 'shield';
+  };
+  attributes: {
+    detail: Schema.Attribute.String & Schema.Attribute.Required;
+    title: Schema.Attribute.String & Schema.Attribute.Required;
+  };
+}
+
+export interface HelpCenterAction extends Struct.ComponentSchema {
+  collectionName: 'components_help_center_actions';
+  info: {
+    displayName: 'Help action';
+    icon: 'link';
+  };
+  attributes: {
+    label: Schema.Attribute.String & Schema.Attribute.Required;
+    url: Schema.Attribute.String & Schema.Attribute.Required;
+  };
+}
+
+export interface HelpCenterFaq extends Struct.ComponentSchema {
+  collectionName: 'components_help_center_faqs';
+  info: {
+    displayName: 'Help question';
+    icon: 'question';
+  };
+  attributes: {
+    answer: Schema.Attribute.Text & Schema.Attribute.Required;
+    question: Schema.Attribute.String & Schema.Attribute.Required;
+    topic: Schema.Attribute.Enumeration<
+      ['filing', 'checklists', 'mediation', 'decrees']
+    > &
+      Schema.Attribute.Required;
+  };
+}
+
+export interface HelpCenterFilter extends Struct.ComponentSchema {
+  collectionName: 'components_help_center_filters';
+  info: {
+    displayName: 'Help filter';
+    icon: 'filter';
+  };
+  attributes: {
+    key: Schema.Attribute.String & Schema.Attribute.Required;
+    label: Schema.Attribute.String & Schema.Attribute.Required;
+  };
+}
+
+export interface HelpCenterGuide extends Struct.ComponentSchema {
+  collectionName: 'components_help_center_guides';
+  info: {
+    displayName: 'Help guide';
+    icon: 'book';
+  };
+  attributes: {
+    body: Schema.Attribute.Text & Schema.Attribute.Required;
+    code: Schema.Attribute.String & Schema.Attribute.Required;
+    detail: Schema.Attribute.Text & Schema.Attribute.Required;
+    href: Schema.Attribute.String & Schema.Attribute.Required;
+    meta: Schema.Attribute.String;
+    slug: Schema.Attribute.String & Schema.Attribute.Required;
+    title: Schema.Attribute.String & Schema.Attribute.Required;
+    topic: Schema.Attribute.Enumeration<
+      ['filing', 'checklists', 'mediation', 'decrees']
+    > &
+      Schema.Attribute.Required;
+  };
+}
+
+export interface HelpCenterPoint extends Struct.ComponentSchema {
+  collectionName: 'components_help_center_points';
+  info: {
+    displayName: 'Help point';
+    icon: 'check';
+  };
+  attributes: {
+    text: Schema.Attribute.String & Schema.Attribute.Required;
+  };
+}
+
+export interface HelpCenterStep extends Struct.ComponentSchema {
+  collectionName: 'components_help_center_steps';
+  info: {
+    displayName: 'Help step';
+    icon: 'walk';
+  };
+  attributes: {
+    body: Schema.Attribute.Text & Schema.Attribute.Required;
+    duration: Schema.Attribute.String & Schema.Attribute.Required;
+    number: Schema.Attribute.String & Schema.Attribute.Required;
+    points: Schema.Attribute.Component<'help-center.point', true>;
+    title: Schema.Attribute.String & Schema.Attribute.Required;
+    topic: Schema.Attribute.Enumeration<
+      ['filing', 'checklists', 'mediation', 'decrees']
+    > &
+      Schema.Attribute.Required;
+  };
+}
+
 export interface HomeLink extends Struct.ComponentSchema {
   collectionName: 'components_home_links';
   info: {
@@ -267,6 +416,17 @@ declare module '@strapi/strapi' {
       'about.leader': AboutLeader;
       'about.milestone': AboutMilestone;
       'about.principle': AboutPrinciple;
+      'contact.choice': ContactChoice;
+      'contact.email': ContactEmail;
+      'contact.faq': ContactFaq;
+      'contact.stat': ContactStat;
+      'contact.trust-item': ContactTrustItem;
+      'help-center.action': HelpCenterAction;
+      'help-center.faq': HelpCenterFaq;
+      'help-center.filter': HelpCenterFilter;
+      'help-center.guide': HelpCenterGuide;
+      'help-center.point': HelpCenterPoint;
+      'help-center.step': HelpCenterStep;
       'home.link': HomeLink;
       'home.stat': HomeStat;
       'news.faq': NewsFaq;

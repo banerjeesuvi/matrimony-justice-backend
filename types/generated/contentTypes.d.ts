@@ -650,6 +650,140 @@ export interface ApiCaseCase extends Struct.CollectionTypeSchema {
   };
 }
 
+export interface ApiContactInquiryContactInquiry
+  extends Struct.CollectionTypeSchema {
+  collectionName: 'contact_inquiries';
+  info: {
+    displayName: 'Contact Inquiry';
+    pluralName: 'contact-inquiries';
+    singularName: 'contact-inquiry';
+  };
+  options: {
+    draftAndPublish: false;
+  };
+  attributes: {
+    adminNote: Schema.Attribute.Text & Schema.Attribute.Private;
+    caseStage: Schema.Attribute.String & Schema.Attribute.Required;
+    city: Schema.Attribute.String & Schema.Attribute.Required;
+    consent: Schema.Attribute.Boolean &
+      Schema.Attribute.Required &
+      Schema.Attribute.DefaultTo<false>;
+    createdAt: Schema.Attribute.DateTime;
+    createdBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
+      Schema.Attribute.Private;
+    disputeType: Schema.Attribute.String & Schema.Attribute.Required;
+    documents: Schema.Attribute.Media<'images' | 'files', true>;
+    email: Schema.Attribute.Email & Schema.Attribute.Required;
+    fullName: Schema.Attribute.String & Schema.Attribute.Required;
+    jurisdiction: Schema.Attribute.String;
+    locale: Schema.Attribute.String & Schema.Attribute.Private;
+    localizations: Schema.Attribute.Relation<
+      'oneToMany',
+      'api::contact-inquiry.contact-inquiry'
+    > &
+      Schema.Attribute.Private;
+    phone: Schema.Attribute.String & Schema.Attribute.Required;
+    publishedAt: Schema.Attribute.DateTime;
+    status: Schema.Attribute.Enumeration<
+      ['New', 'In review', 'Replied', 'Closed']
+    > &
+      Schema.Attribute.Required &
+      Schema.Attribute.DefaultTo<'New'>;
+    summary: Schema.Attribute.Text & Schema.Attribute.Required;
+    updatedAt: Schema.Attribute.DateTime;
+    updatedBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
+      Schema.Attribute.Private;
+    urgency: Schema.Attribute.String &
+      Schema.Attribute.Required &
+      Schema.Attribute.DefaultTo<'Standard'>;
+  };
+}
+
+export interface ApiContactPageContactPage extends Struct.SingleTypeSchema {
+  collectionName: 'contact_pages';
+  info: {
+    displayName: 'Contact Page';
+    pluralName: 'contact-pages';
+    singularName: 'contact-page';
+  };
+  options: {
+    draftAndPublish: true;
+  };
+  attributes: {
+    address: Schema.Attribute.Text;
+    addressLabel: Schema.Attribute.String;
+    bandBody: Schema.Attribute.Text;
+    bandEyebrow: Schema.Attribute.String;
+    bandImage: Schema.Attribute.Media<'images'>;
+    bandStats: Schema.Attribute.Component<'contact.stat', true>;
+    bandTitle: Schema.Attribute.String;
+    callbackLabel: Schema.Attribute.String;
+    callbackValue: Schema.Attribute.String;
+    caseStages: Schema.Attribute.Component<'contact.choice', true>;
+    chambersSubtitle: Schema.Attribute.String;
+    chambersTitle: Schema.Attribute.String;
+    charterBody: Schema.Attribute.Text;
+    charterTitle: Schema.Attribute.String;
+    closingBody: Schema.Attribute.Text;
+    closingPrimaryLabel: Schema.Attribute.String;
+    closingPrimaryUrl: Schema.Attribute.String;
+    closingSecondaryLabel: Schema.Attribute.String;
+    closingSecondaryUrl: Schema.Attribute.String;
+    closingTitle: Schema.Attribute.String;
+    consentText: Schema.Attribute.Text & Schema.Attribute.Required;
+    createdAt: Schema.Attribute.DateTime;
+    createdBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
+      Schema.Attribute.Private;
+    disputeTypes: Schema.Attribute.Component<'contact.choice', true>;
+    emails: Schema.Attribute.Component<'contact.email', true>;
+    emergencyBadge: Schema.Attribute.String;
+    emergencyBody: Schema.Attribute.Text;
+    emergencyTitle: Schema.Attribute.String;
+    eyebrow: Schema.Attribute.String & Schema.Attribute.Required;
+    faqIntro: Schema.Attribute.String;
+    faqs: Schema.Attribute.Component<'contact.faq', true>;
+    faqTitle: Schema.Attribute.String;
+    fileHelp: Schema.Attribute.String;
+    fileHint: Schema.Attribute.String;
+    fileLabel: Schema.Attribute.String;
+    formIntro: Schema.Attribute.Text;
+    formTitle: Schema.Attribute.String & Schema.Attribute.Required;
+    hours: Schema.Attribute.String;
+    hoursLabel: Schema.Attribute.String;
+    hoursNote: Schema.Attribute.String;
+    introduction: Schema.Attribute.Text & Schema.Attribute.Required;
+    locale: Schema.Attribute.String & Schema.Attribute.Private;
+    localizations: Schema.Attribute.Relation<
+      'oneToMany',
+      'api::contact-page.contact-page'
+    > &
+      Schema.Attribute.Private;
+    mailLabel: Schema.Attribute.String;
+    mapBadge: Schema.Attribute.String;
+    mapImage: Schema.Attribute.Media<'images'>;
+    mapLabel: Schema.Attribute.String;
+    phoneDisplay: Schema.Attribute.String;
+    phoneLabel: Schema.Attribute.String;
+    phoneUrl: Schema.Attribute.String;
+    protocolNote: Schema.Attribute.String;
+    publishedAt: Schema.Attribute.DateTime;
+    seo: Schema.Attribute.Component<'shared.seo', false>;
+    standbyLabel: Schema.Attribute.String;
+    submitLabel: Schema.Attribute.String & Schema.Attribute.Required;
+    successMessage: Schema.Attribute.Text & Schema.Attribute.Required;
+    summaryNote: Schema.Attribute.String;
+    title: Schema.Attribute.String & Schema.Attribute.Required;
+    trustItems: Schema.Attribute.Component<'contact.trust-item', true>;
+    updatedAt: Schema.Attribute.DateTime;
+    updatedBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
+      Schema.Attribute.Private;
+    urgencyLevels: Schema.Attribute.Component<'contact.choice', true>;
+    whatsappDisplay: Schema.Attribute.String;
+    whatsappLabel: Schema.Attribute.String;
+    whatsappUrl: Schema.Attribute.String;
+  };
+}
+
 export interface ApiHeaderHeader extends Struct.SingleTypeSchema {
   collectionName: 'headers';
   info: {
@@ -681,6 +815,67 @@ export interface ApiHeaderHeader extends Struct.SingleTypeSchema {
     siteName: Schema.Attribute.String &
       Schema.Attribute.Required &
       Schema.Attribute.DefaultTo<'Matrimony Justice'>;
+    updatedAt: Schema.Attribute.DateTime;
+    updatedBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
+      Schema.Attribute.Private;
+  };
+}
+
+export interface ApiHelpCenterHelpCenter extends Struct.SingleTypeSchema {
+  collectionName: 'help_centers';
+  info: {
+    displayName: 'Help Center';
+    pluralName: 'help-centers';
+    singularName: 'help-center';
+  };
+  options: {
+    draftAndPublish: true;
+  };
+  attributes: {
+    badge: Schema.Attribute.String & Schema.Attribute.Required;
+    breadcrumbCurrent: Schema.Attribute.String & Schema.Attribute.Required;
+    breadcrumbHomeLabel: Schema.Attribute.String & Schema.Attribute.Required;
+    breadcrumbHomeUrl: Schema.Attribute.String & Schema.Attribute.Required;
+    createdAt: Schema.Attribute.DateTime;
+    createdBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
+      Schema.Attribute.Private;
+    deskLabel: Schema.Attribute.String & Schema.Attribute.Required;
+    deskUrl: Schema.Attribute.String & Schema.Attribute.Required;
+    emptyMessage: Schema.Attribute.Text;
+    faqCountLabel: Schema.Attribute.String;
+    faqEyebrow: Schema.Attribute.String;
+    faqs: Schema.Attribute.Component<'help-center.faq', true>;
+    faqTitle: Schema.Attribute.String & Schema.Attribute.Required;
+    filters: Schema.Attribute.Component<'help-center.filter', true>;
+    guides: Schema.Attribute.Component<'help-center.guide', true>;
+    guidesEyebrow: Schema.Attribute.String;
+    guidesTitle: Schema.Attribute.String & Schema.Attribute.Required;
+    handbookLabel: Schema.Attribute.String & Schema.Attribute.Required;
+    introduction: Schema.Attribute.Text & Schema.Attribute.Required;
+    locale: Schema.Attribute.String & Schema.Attribute.Private;
+    localizations: Schema.Attribute.Relation<
+      'oneToMany',
+      'api::help-center.help-center'
+    > &
+      Schema.Attribute.Private;
+    noticeBody: Schema.Attribute.Text & Schema.Attribute.Required;
+    noticeLabel: Schema.Attribute.String & Schema.Attribute.Required;
+    printLabel: Schema.Attribute.String;
+    progressionBadge: Schema.Attribute.String;
+    progressionEmphasis: Schema.Attribute.String;
+    progressionIntro: Schema.Attribute.Text & Schema.Attribute.Required;
+    progressionLinkLabel: Schema.Attribute.String;
+    progressionLinkUrl: Schema.Attribute.String;
+    progressionNote: Schema.Attribute.Text;
+    progressionTitle: Schema.Attribute.String & Schema.Attribute.Required;
+    publishedAt: Schema.Attribute.DateTime;
+    searchPlaceholder: Schema.Attribute.String & Schema.Attribute.Required;
+    seo: Schema.Attribute.Component<'shared.seo', false>;
+    steps: Schema.Attribute.Component<'help-center.step', true>;
+    supportActions: Schema.Attribute.Component<'help-center.action', true>;
+    supportEyebrow: Schema.Attribute.String;
+    supportTitle: Schema.Attribute.String & Schema.Attribute.Required;
+    title: Schema.Attribute.String & Schema.Attribute.Required;
     updatedAt: Schema.Attribute.DateTime;
     updatedBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
       Schema.Attribute.Private;
@@ -1559,7 +1754,10 @@ declare module '@strapi/strapi' {
       'api::about.about': ApiAboutAbout;
       'api::author.author': ApiAuthorAuthor;
       'api::case.case': ApiCaseCase;
+      'api::contact-inquiry.contact-inquiry': ApiContactInquiryContactInquiry;
+      'api::contact-page.contact-page': ApiContactPageContactPage;
       'api::header.header': ApiHeaderHeader;
+      'api::help-center.help-center': ApiHelpCenterHelpCenter;
       'api::homepage.homepage': ApiHomepageHomepage;
       'api::news-article.news-article': ApiNewsArticleNewsArticle;
       'api::news-category.news-category': ApiNewsCategoryNewsCategory;

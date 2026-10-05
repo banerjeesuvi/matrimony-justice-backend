@@ -1,0 +1,24 @@
+{
+  "collectionName": "components_help_center_steps",
+  "info": {
+    "displayName": "Help step",
+    "icon": "walk"
+  },
+  "options": {},
+  "attributes": {
+    "number": { "type": "string", "required": true },
+    "topic": {
+      "type": "enumeration",
+      "enum": ["filing", "checklists", "mediation", "decrees"],
+      "required": true
+    },
+    "duration": { "type": "string", "required": true },
+    "title": { "type": "string", "required": true },
+    "body": { "type": "text", "required": true },
+    "points": {
+      "type": "component",
+      "repeatable": true,
+      "component": "help-center.point"
+    }
+  }
+}

@@ -1,0 +1,8 @@
+{
+  "collectionName": "components_contact_trust_items",
+  "info": { "displayName": "Trust item", "icon": "shield" },
+  "attributes": {
+    "title": { "type": "string", "required": true },
+    "detail": { "type": "string", "required": true }
+  }
+}

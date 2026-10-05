@@ -1,0 +1,12 @@
+{
+  "collectionName": "components_help_center_actions",
+  "info": {
+    "displayName": "Help action",
+    "icon": "link"
+  },
+  "options": {},
+  "attributes": {
+    "label": { "type": "string", "required": true },
+    "url": { "type": "string", "required": true }
+  }
+}

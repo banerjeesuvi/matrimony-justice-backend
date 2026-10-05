@@ -4,6 +4,8 @@ import { seedSampleNews } from './seed/sample-news';
 import { seedSampleJudgement } from './seed/sample-judgement';
 import { seedHomepage } from './seed/sample-homepage';
 import { seedPublicPages } from './seed/sample-public-pages';
+import { seedContactPage } from './seed/sample-contact';
+import { seedHelpCenter } from './seed/sample-help-center';
 
 const AUTHENTICATED_ACTIONS = [
   'api::case.case.create',
@@ -51,6 +53,9 @@ const PUBLIC_HOME_ACTIONS = [
   'api::service.service.findOne',
   'api::testimonial.testimonial.find',
   'api::testimonial.testimonial.findOne',
+  'api::contact-page.contact-page.find',
+  'api::contact-inquiry.contact-inquiry.create',
+  'api::help-center.help-center.find',
 ] as const;
 
 const PUBLIC_AUTH_ACTIONS = [
@@ -196,6 +201,20 @@ export default {
       await seedPublicPages(strapi);
     } catch (error) {
       strapi.log.error('[seed] Failed to publish the shared header, about, or services page.');
+      strapi.log.error(error);
+    }
+
+    try {
+      await seedContactPage(strapi);
+    } catch (error) {
+      strapi.log.error('[seed] Failed to publish the contact page.');
+      strapi.log.error(error);
+    }
+
+    try {
+      await seedHelpCenter(strapi);
+    } catch (error) {
+      strapi.log.error('[seed] Failed to publish the help center.');
       strapi.log.error(error);
     }
   },

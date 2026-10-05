@@ -1,0 +1,22 @@
+{
+  "collectionName": "components_help_center_guides",
+  "info": {
+    "displayName": "Help guide",
+    "icon": "book"
+  },
+  "options": {},
+  "attributes": {
+    "slug": { "type": "string", "required": true },
+    "topic": {
+      "type": "enumeration",
+      "enum": ["filing", "checklists", "mediation", "decrees"],
+      "required": true
+    },
+    "code": { "type": "string", "required": true },
+    "title": { "type": "string", "required": true },
+    "body": { "type": "text", "required": true },
+    "meta": { "type": "string" },
+    "href": { "type": "string", "required": true },
+    "detail": { "type": "text", "required": true }
+  }
+}

@@ -1,0 +1,39 @@
+{
+  "kind": "collectionType",
+  "collectionName": "contact_inquiries",
+  "info": {
+    "singularName": "contact-inquiry",
+    "pluralName": "contact-inquiries",
+    "displayName": "Contact Inquiry"
+  },
+  "options": { "draftAndPublish": false },
+  "pluginOptions": {},
+  "attributes": {
+    "fullName": { "type": "string", "required": true },
+    "email": { "type": "email", "required": true },
+    "phone": { "type": "string", "required": true },
+    "city": { "type": "string", "required": true },
+    "jurisdiction": { "type": "string" },
+    "disputeType": { "type": "string", "required": true },
+    "caseStage": { "type": "string", "required": true },
+    "urgency": { "type": "string", "required": true, "default": "Standard" },
+    "summary": { "type": "text", "required": true },
+    "documents": {
+      "type": "media",
+      "multiple": true,
+      "required": false,
+      "allowedTypes": ["images", "files"]
+    },
+    "consent": { "type": "boolean", "required": true, "default": false },
+    "status": {
+      "type": "enumeration",
+      "enum": ["New", "In review", "Replied", "Closed"],
+      "default": "New",
+      "required": true
+    },
+    "adminNote": {
+      "type": "text",
+      "private": true
+    }
+  }
+}

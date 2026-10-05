@@ -1,0 +1,11 @@
+{
+  "collectionName": "components_help_center_points",
+  "info": {
+    "displayName": "Help point",
+    "icon": "check"
+  },
+  "options": {},
+  "attributes": {
+    "text": { "type": "string", "required": true }
+  }
+}

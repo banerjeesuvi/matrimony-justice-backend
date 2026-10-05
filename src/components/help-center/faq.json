@@ -1,0 +1,17 @@
+{
+  "collectionName": "components_help_center_faqs",
+  "info": {
+    "displayName": "Help question",
+    "icon": "question"
+  },
+  "options": {},
+  "attributes": {
+    "topic": {
+      "type": "enumeration",
+      "enum": ["filing", "checklists", "mediation", "decrees"],
+      "required": true
+    },
+    "question": { "type": "string", "required": true },
+    "answer": { "type": "text", "required": true }
+  }
+}
