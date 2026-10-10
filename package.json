@@ -19,6 +19,7 @@
     "@notum-cz/strapi-plugin-seo": "^2.0.12",
     "@strapi/plugin-cloud": "5.57.0",
     "@strapi/plugin-users-permissions": "5.57.0",
+    "@strapi/provider-email-nodemailer": "^5.57.0",
     "@strapi/strapi": "5.57.0",
     "better-sqlite3": "12.8.0",
     "pg": "^8.23.1",

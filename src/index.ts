@@ -6,6 +6,7 @@ import { seedHomepage } from './seed/sample-homepage';
 import { seedPublicPages } from './seed/sample-public-pages';
 import { seedContactPage } from './seed/sample-contact';
 import { seedHelpCenter } from './seed/sample-help-center';
+import { smtpMailbox } from '../config/nodemailer';
 
 const AUTHENTICATED_ACTIONS = [
   'api::case.case.create',
@@ -85,6 +86,47 @@ async function configurePasswordReset(strapi) {
     });
     strapi.log.info(`[bootstrap] Set password reset page to ${resetUrl}`);
   }
+
+  const fromEmail = smtpMailbox(
+    process.env.SMTP_FROM,
+    smtpMailbox(process.env.SMTP_USERNAME, ''),
+  );
+  const fromName = (process.env.SMTP_FROM_NAME || 'Matrimony Justice').trim();
+  const emails = (await pluginStore.get({ key: 'email' })) || {};
+  const resetFrom = emails.reset_password?.options?.from;
+  if (fromEmail && (resetFrom?.email !== fromEmail || resetFrom?.name !== fromName)) {
+    emails.reset_password = {
+      ...emails.reset_password,
+      options: {
+        ...emails.reset_password?.options,
+        from: { name: fromName, email: fromEmail },
+        response_email: fromEmail,
+      },
+    };
+    await pluginStore.set({ key: 'email', value: emails });
+    strapi.log.info(`[bootstrap] Set password reset sender to ${fromName} <${fromEmail}>`);
+  }
+}
+
+/**
+ * Users & Permissions writes resetPasswordToken through the Document Service,
+ * which drops that private field. The email still contains the code, but the
+ * database never stores it, so reset always reports the link as invalid.
+ * Persist the token with a direct query after the normal update.
+ */
+function keepResetToken(strapi) {
+  const userService = strapi.plugin('users-permissions').service('user');
+  const originalEdit = userService.edit.bind(userService);
+  userService.edit = async (userId, params: Record<string, unknown> = {}) => {
+    const result = await originalEdit(userId, params);
+    if (Object.prototype.hasOwnProperty.call(params, 'resetPasswordToken')) {
+      const token = params.resetPasswordToken;
+      await strapi.db.connection('up_users').where({ id: userId }).update({
+        reset_password_token: token,
+      });
+    }
+    return result;
+  };
 }
 
 export default {
@@ -105,6 +147,8 @@ export default {
    * Ensure authenticated users can manage their cases.
    */
   async bootstrap({ strapi }) {
+    keepResetToken(strapi);
+
     const authenticated = await strapi.db
       .query('plugin::users-permissions.role')
       .findOne({ where: { type: 'authenticated' } });
