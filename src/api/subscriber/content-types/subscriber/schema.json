@@ -1,0 +1,44 @@
+{
+  "kind": "collectionType",
+  "collectionName": "subscribers",
+  "info": {
+    "singularName": "subscriber",
+    "pluralName": "subscribers",
+    "displayName": "Subscriber",
+    "description": "Newsletter subscribers. Written only through the server-to-server newsletter routes."
+  },
+  "options": {
+    "draftAndPublish": false
+  },
+  "pluginOptions": {},
+  "attributes": {
+    "email": {
+      "type": "email",
+      "required": true,
+      "unique": true
+    },
+    "status": {
+      "type": "enumeration",
+      "enum": ["pending", "subscribed", "unsubscribed"],
+      "default": "pending",
+      "required": true
+    },
+    "confirmToken": {
+      "type": "string",
+      "private": true
+    },
+    "unsubscribeToken": {
+      "type": "string",
+      "private": true
+    },
+    "source": {
+      "type": "string"
+    },
+    "subscribedAt": {
+      "type": "datetime"
+    },
+    "unsubscribedAt": {
+      "type": "datetime"
+    }
+  }
+}
