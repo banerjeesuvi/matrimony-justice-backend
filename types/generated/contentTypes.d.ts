@@ -605,6 +605,7 @@ export interface ApiCaseCase extends Struct.CollectionTypeSchema {
       'images' | 'files' | 'videos' | 'audios',
       true
     >;
+    judgmentPassed: Schema.Attribute.Enumeration<['husband', 'wife']>;
     legalFramework: Schema.Attribute.Enumeration<
       ['IPC', 'CrPC', 'IEA', 'BNS', 'BNSS', 'BSA']
     >;

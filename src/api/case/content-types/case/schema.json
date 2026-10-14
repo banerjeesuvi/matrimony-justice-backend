@@ -148,6 +148,13 @@
         "videos",
         "audios"
       ]
+    },
+    "judgmentPassed": {
+      "type": "enumeration",
+      "enum": [
+        "husband",
+        "wife"
+      ]
     }
   }
 }
