@@ -1000,6 +1000,7 @@ export interface ApiNewsArticleNewsArticle extends Struct.CollectionTypeSchema {
   };
   attributes: {
     author: Schema.Attribute.Relation<'manyToOne', 'api::author.author'>;
+    body: Schema.Attribute.Blocks;
     category: Schema.Attribute.Relation<
       'manyToOne',
       'api::news-category.news-category'
