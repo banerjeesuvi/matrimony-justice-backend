@@ -41,6 +41,10 @@
         "news.faq"
       ]
     },
+    "body": {
+      "type": "blocks",
+      "description": "Mirror of the article text for the SEO plugin analyzer (synced from content dynamic zone). Not rendered by the frontend."
+    },
     "publishedDate": {
       "type": "datetime",
       "required": true
