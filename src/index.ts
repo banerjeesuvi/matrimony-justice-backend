@@ -179,16 +179,84 @@ function syncNewsArticleDerivedFields(data) {
   }
 }
 
+/**
+ * The Document Service cannot persist media nested two components deep
+ * (`seo.openGraph.ogImage`) — it silently drops the value. Set it with a
+ * direct query after the document operation, mirroring keepResetToken.
+ */
+async function persistOgImage(strapi, documentId, imgId) {
+  if (!documentId || imgId == null) return;
+  try {
+    for (const status of ['draft', 'published']) {
+      let full;
+      try {
+        full = await strapi.documents('api::news-article.news-article').findOne({
+          documentId,
+          status,
+          populate: ['seo.openGraph'],
+        });
+      } catch {
+        continue;
+      }
+      const og = full?.seo?.openGraph;
+      const ogId = og?.id;
+      if (!ogId) continue;
+      const current = og?.ogImage?.id ?? og?.ogImage ?? null;
+      if (current === imgId) continue;
+      await strapi.db.query('shared.open-graph').update({
+        where: { id: ogId },
+        data: { ogImage: imgId },
+      });
+      strapi.log.info(
+        `[news-article] Set ogImage=${imgId} on openGraph ${ogId} (${status}).`,
+      );
+    }
+  } catch (error) {
+    strapi.log.error('[news-article] Failed to persist ogImage.');
+    strapi.log.error(error);
+  }
+}
+
 function registerNewsArticleMiddleware(strapi) {
   strapi.documents.use(async (context, next) => {
+    const isArticle = context.uid === 'api::news-article.news-article';
     if (
-      context.uid === 'api::news-article.news-article' &&
+      isArticle &&
       (context.action === 'create' || context.action === 'update') &&
       context.params?.data
     ) {
       syncNewsArticleDerivedFields(context.params.data);
     }
     const result = await next();
+    if (
+      isArticle &&
+      ['create', 'update', 'publish'].includes(context.action) &&
+      result &&
+      typeof result === 'object' &&
+      !Array.isArray(result)
+    ) {
+      const inputData = context.params?.data || {};
+      const imgId = inputData?.seo?.metaImage ?? inputData?.cover ?? null;
+      // Fall back to the stored cover when the write did not include an image
+      // (e.g. publish of an existing draft).
+      let resolvedImgId = imgId;
+      if (resolvedImgId == null && result.documentId) {
+        try {
+          const stored = await strapi.documents('api::news-article.news-article').findOne({
+            documentId: result.documentId,
+            status: 'draft',
+            populate: ['cover', 'seo.metaImage'],
+          });
+          resolvedImgId =
+            stored?.seo?.metaImage?.id ?? stored?.cover?.id ?? null;
+        } catch {
+          resolvedImgId = null;
+        }
+      }
+      if (resolvedImgId != null) {
+        await persistOgImage(strapi, result.documentId, resolvedImgId);
+      }
+    }
     return result;
   });
 }
