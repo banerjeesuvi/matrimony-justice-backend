@@ -71,6 +71,12 @@
       "target": "api::author.author",
       "inversedBy": "articles"
     },
+    "country": {
+      "type": "relation",
+      "relation": "manyToOne",
+      "target": "api::country.country",
+      "inversedBy": "articles"
+    },
     "relatedArticles": {
       "type": "relation",
       "relation": "manyToMany",

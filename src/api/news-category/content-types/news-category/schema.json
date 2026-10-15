@@ -30,6 +30,12 @@
       "target": "api::news-article.news-article",
       "mappedBy": "category"
     },
+    "countries": {
+      "type": "relation",
+      "relation": "manyToMany",
+      "target": "api::country.country",
+      "mappedBy": "categories"
+    },
     "seo": {
       "type": "component",
       "repeatable": false,

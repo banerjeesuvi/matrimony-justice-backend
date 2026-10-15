@@ -1,6 +1,8 @@
 // import type { Core } from '@strapi/strapi';
 
 import { seedSampleNews } from './seed/sample-news';
+import { seedNewsCategories } from './seed/news-categories';
+import { seedCountries } from './seed/countries';
 import { seedSampleJudgement } from './seed/sample-judgement';
 import { seedHomepage } from './seed/sample-homepage';
 import { seedPublicPages } from './seed/sample-public-pages';
@@ -39,6 +41,8 @@ const PUBLIC_NEWS_ACTIONS = [
   'api::news-tag.news-tag.findOne',
   'api::author.author.find',
   'api::author.author.findOne',
+  'api::country.country.find',
+  'api::country.country.findOne',
 ] as const;
 
 const AUTHENTICATED_NEWS_ACTIONS = [
@@ -219,6 +223,20 @@ export default {
     }
 
     await configurePasswordReset(strapi);
+
+    try {
+      await seedCountries(strapi);
+    } catch (error) {
+      strapi.log.error('[seed] Failed to create country editions.');
+      strapi.log.error(error);
+    }
+
+    try {
+      await seedNewsCategories(strapi);
+    } catch (error) {
+      strapi.log.error('[seed] Failed to create news categories.');
+      strapi.log.error(error);
+    }
 
     try {
       await seedSampleNews(strapi);

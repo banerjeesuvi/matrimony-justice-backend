@@ -785,6 +785,52 @@ export interface ApiContactPageContactPage extends Struct.SingleTypeSchema {
   };
 }
 
+export interface ApiCountryCountry extends Struct.CollectionTypeSchema {
+  collectionName: 'countries';
+  info: {
+    displayName: 'Country';
+    pluralName: 'countries';
+    singularName: 'country';
+  };
+  options: {
+    draftAndPublish: true;
+  };
+  attributes: {
+    articles: Schema.Attribute.Relation<
+      'oneToMany',
+      'api::news-article.news-article'
+    >;
+    categories: Schema.Attribute.Relation<
+      'manyToMany',
+      'api::news-category.news-category'
+    >;
+    code: Schema.Attribute.String &
+      Schema.Attribute.Required &
+      Schema.Attribute.Unique;
+    createdAt: Schema.Attribute.DateTime;
+    createdBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
+      Schema.Attribute.Private;
+    flag: Schema.Attribute.String;
+    heroSubtitle: Schema.Attribute.Text;
+    heroTitle: Schema.Attribute.String;
+    hreflang: Schema.Attribute.String;
+    isDefault: Schema.Attribute.Boolean & Schema.Attribute.DefaultTo<false>;
+    locale: Schema.Attribute.String & Schema.Attribute.Private;
+    localizations: Schema.Attribute.Relation<
+      'oneToMany',
+      'api::country.country'
+    > &
+      Schema.Attribute.Private;
+    name: Schema.Attribute.String & Schema.Attribute.Required;
+    publishedAt: Schema.Attribute.DateTime;
+    seoDescription: Schema.Attribute.Text;
+    sortOrder: Schema.Attribute.Integer & Schema.Attribute.DefaultTo<0>;
+    updatedAt: Schema.Attribute.DateTime;
+    updatedBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
+      Schema.Attribute.Private;
+  };
+}
+
 export interface ApiHeaderHeader extends Struct.SingleTypeSchema {
   collectionName: 'headers';
   info: {
@@ -961,6 +1007,7 @@ export interface ApiNewsArticleNewsArticle extends Struct.CollectionTypeSchema {
     content: Schema.Attribute.DynamicZone<
       ['news.rich-text', 'news.media', 'news.quote', 'news.video', 'news.faq']
     >;
+    country: Schema.Attribute.Relation<'manyToOne', 'api::country.country'>;
     cover: Schema.Attribute.Media<'images'> & Schema.Attribute.Required;
     createdAt: Schema.Attribute.DateTime;
     createdBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
@@ -1010,6 +1057,7 @@ export interface ApiNewsCategoryNewsCategory
       'oneToMany',
       'api::news-article.news-article'
     >;
+    countries: Schema.Attribute.Relation<'manyToMany', 'api::country.country'>;
     createdAt: Schema.Attribute.DateTime;
     createdBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
       Schema.Attribute.Private;
@@ -1798,6 +1846,7 @@ declare module '@strapi/strapi' {
       'api::case.case': ApiCaseCase;
       'api::contact-inquiry.contact-inquiry': ApiContactInquiryContactInquiry;
       'api::contact-page.contact-page': ApiContactPageContactPage;
+      'api::country.country': ApiCountryCountry;
       'api::header.header': ApiHeaderHeader;
       'api::help-center.help-center': ApiHelpCenterHelpCenter;
       'api::homepage.homepage': ApiHomepageHomepage;
