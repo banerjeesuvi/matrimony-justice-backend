@@ -1,6 +1,11 @@
 /**
  * news-article controller — signed-in users post as their linked Author.
- * Full-access API tokens (automation) may also post; they set `author` explicitly.
+ * API tokens (full-access or custom with create permission) may also post;
+ * they set `author` explicitly in the request body.
+ *
+ * Status behavior:
+ * - Pass `?status=draft` to create a draft article.
+ * - Default is 'published' for backward compatibility.
  */
 
 import { factories } from '@strapi/strapi';
@@ -12,6 +17,11 @@ type AuthUser = {
   username?: string;
   firstName?: string;
   lastName?: string;
+};
+
+type AuthState = {
+  strategy?: { name?: string };
+  credentials?: { type?: string };
 };
 
 function slugify(value: string) {
@@ -35,18 +45,26 @@ export default factories.createCoreController(
     async create(ctx) {
       const sessionUser = ctx.state.user as AuthUser | undefined;
 
-      // Automation: allow full-access API tokens (machine-to-machine posting).
-      // Signed-in users keep the existing behavior below (author auto-resolved).
-      const authState = (ctx.state as { auth?: { strategy?: { name?: string }; credentials?: { type?: string } } } | undefined)?.auth;
+      // Strapi 5 uses 'content-api-token' as the strategy name for API tokens.
+      // The credentials object contains the token with its `type` property.
+      const authState = (ctx.state as { auth?: AuthState })?.auth;
+      const isApiToken = authState?.strategy?.name === 'content-api-token';
+      const tokenType = authState?.credentials?.type;
+
+      // API token authentication: full-access tokens are allowed unconditionally;
+      // custom tokens are allowed if they reach this point (Strapi's route auth
+      // already enforces the token has 'api::news-article.news-article.create'
+      // permission). Read-only tokens cannot create, so Strapi rejects them
+      // before reaching this controller.
       const isAutomationToken =
-        authState?.strategy?.name === 'api-token' &&
-        authState?.credentials?.type === 'full-access';
+        isApiToken && (tokenType === 'full-access' || tokenType === 'custom');
 
       const body = (ctx.request.body ?? {}) as {
         data?: Record<string, unknown>;
       };
 
       if (sessionUser?.id) {
+        // Signed-in user path: auto-resolve author from the user's linked Author entry.
         const account = (await strapi.db
           .query('plugin::users-permissions.user')
           .findOne({
@@ -72,9 +90,14 @@ export default factories.createCoreController(
       // Automation-token path: `author` (if provided) comes from the request
       // body as-is; the automation sets it to the dedicated author entry.
 
+      // Respect ?status query param; default to 'published' for backward compat.
+      const requestedStatus = ctx.query.status as string | undefined;
+      const status: 'draft' | 'published' =
+        requestedStatus === 'draft' ? 'draft' : 'published';
+
       const created = await strapi.documents('api::news-article.news-article').create({
         data: body.data as never,
-        status: 'published',
+        status,
       });
 
       const sanitized = await this.sanitizeOutput(created, ctx);
