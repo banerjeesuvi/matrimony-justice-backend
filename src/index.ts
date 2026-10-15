@@ -193,14 +193,18 @@ async function persistOgImage(strapi, documentId, imgId) {
         full = await strapi.documents('api::news-article.news-article').findOne({
           documentId,
           status,
-          populate: ['seo.openGraph'],
+          populate: { seo: { populate: { openGraph: { populate: '*' } } } },
         });
-      } catch {
+      } catch (e) {
+        strapi.log.warn(`[news-article] findOne failed for ${documentId} (${status}): ${e.message}`);
         continue;
       }
       const og = full?.seo?.openGraph;
       const ogId = og?.id;
-      if (!ogId) continue;
+      if (!ogId) {
+        strapi.log.warn(`[news-article] No openGraph component found for ${documentId} (${status}).`);
+        continue;
+      }
       const current = og?.ogImage?.id ?? og?.ogImage ?? null;
       if (current === imgId) continue;
       await strapi.db.query('shared.open-graph').update({
@@ -245,7 +249,7 @@ function registerNewsArticleMiddleware(strapi) {
           const stored = await strapi.documents('api::news-article.news-article').findOne({
             documentId: result.documentId,
             status: 'draft',
-            populate: ['cover', 'seo.metaImage'],
+            populate: { cover: true, seo: { populate: { metaImage: true } } },
           });
           resolvedImgId =
             stored?.seo?.metaImage?.id ?? stored?.cover?.id ?? null;
