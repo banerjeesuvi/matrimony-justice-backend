@@ -133,6 +133,66 @@ function keepResetToken(strapi) {
   };
 }
 
+/**
+ * news-article derived fields via Document Service Middleware (the v5-native
+ * replacement for lifecycles, which do not reliably fire for document
+ * operations).
+ *
+ * 1. `body` mirror: the SEO plugin's analyzer cannot read article text stored
+ *    inside the `content` dynamic zone, so `body` (top-level blocks field)
+ *    mirrors the dynamic zone's rich-text component.
+ *
+ * 2. `seo.openGraph.ogImage` mirror: the content REST API silently drops
+ *    media values nested two components deep, so the server copies the
+ *    cover/metaImage id here on write.
+ */
+function syncNewsArticleDerivedFields(data) {
+  if (!data || typeof data !== 'object') return;
+
+  // 1. body mirror from the content dynamic zone
+  if (Array.isArray(data.content)) {
+    const richText = data.content.find(
+      (c) =>
+        c &&
+        typeof c === 'object' &&
+        c.__component === 'news.rich-text' &&
+        Array.isArray(c.body),
+    );
+    if (richText) {
+      data.body = richText.body;
+    }
+  }
+
+  // 2. ogImage mirror from cover / seo.metaImage
+  const seo = data.seo;
+  if (seo && typeof seo === 'object') {
+    const imgExplicit = seo.metaImage != null || data.cover != null;
+    const img = seo.metaImage ?? data.cover ?? null;
+    if (imgExplicit && img != null) {
+      const og =
+        seo.openGraph && typeof seo.openGraph === 'object'
+          ? seo.openGraph
+          : {};
+      og.ogImage = img;
+      seo.openGraph = og;
+    }
+  }
+}
+
+function registerNewsArticleMiddleware(strapi) {
+  strapi.documents.use(async (context, next) => {
+    if (
+      context.uid === 'api::news-article.news-article' &&
+      (context.action === 'create' || context.action === 'update') &&
+      context.params?.data
+    ) {
+      syncNewsArticleDerivedFields(context.params.data);
+    }
+    const result = await next();
+    return result;
+  });
+}
+
 export default {
   register({ strapi }) {
     const user = strapi.contentType('plugin::users-permissions.user');
@@ -145,6 +205,8 @@ export default {
       required: false,
       allowedTypes: ['images'],
     };
+
+    registerNewsArticleMiddleware(strapi);
   },
 
   /**
