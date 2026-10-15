@@ -1,5 +1,6 @@
 /**
  * news-article controller — signed-in users post as their linked Author.
+ * Full-access API tokens (automation) may also post; they set `author` explicitly.
  */
 
 import { factories } from '@strapi/strapi';
@@ -33,33 +34,43 @@ export default factories.createCoreController(
   ({ strapi }) => ({
     async create(ctx) {
       const sessionUser = ctx.state.user as AuthUser | undefined;
-      if (!sessionUser?.id) {
-        return ctx.unauthorized('You must be signed in to post news.');
-      }
 
-      const account = (await strapi.db
-        .query('plugin::users-permissions.user')
-        .findOne({
-          where: { id: sessionUser.id },
-          populate: ['avatar'],
-        })) as
-        | (AuthUser & { avatar?: { id?: number | string } | number | string | null })
-        | null;
-
-      if (!account?.id) {
-        return ctx.unauthorized('You must be signed in to post news.');
-      }
-
-      const authorId = await resolveAuthorId(strapi, account);
+      // Automation: allow full-access API tokens (machine-to-machine posting).
+      // Signed-in users keep the existing behavior below (author auto-resolved).
+      const authState = (ctx.state as { auth?: { strategy?: { name?: string }; credentials?: { type?: string } } } | undefined)?.auth;
+      const isAutomationToken =
+        authState?.strategy?.name === 'api-token' &&
+        authState?.credentials?.type === 'full-access';
 
       const body = (ctx.request.body ?? {}) as {
         data?: Record<string, unknown>;
       };
-      body.data = {
-        ...(body.data ?? {}),
-        author: authorId,
-      };
-      ctx.request.body = body;
+
+      if (sessionUser?.id) {
+        const account = (await strapi.db
+          .query('plugin::users-permissions.user')
+          .findOne({
+            where: { id: sessionUser.id },
+            populate: ['avatar'],
+          })) as
+          | (AuthUser & { avatar?: { id?: number | string } | number | string | null })
+          | null;
+
+        if (!account?.id) {
+          return ctx.unauthorized('You must be signed in to post news.');
+        }
+
+        const authorId = await resolveAuthorId(strapi, account);
+        body.data = {
+          ...(body.data ?? {}),
+          author: authorId,
+        };
+        ctx.request.body = body;
+      } else if (!isAutomationToken) {
+        return ctx.unauthorized('You must be signed in to post news.');
+      }
+      // Automation-token path: `author` (if provided) comes from the request
+      // body as-is; the automation sets it to the dedicated author entry.
 
       const created = await strapi.documents('api::news-article.news-article').create({
         data: body.data as never,
