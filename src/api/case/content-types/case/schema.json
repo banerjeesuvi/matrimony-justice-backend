@@ -46,6 +46,9 @@
     "petitionerPhone": {
       "type": "string"
     },
+    "wifeAddress": {
+      "type": "string"
+    },
     "respondent": {
       "type": "string"
     },
@@ -53,6 +56,9 @@
       "type": "email"
     },
     "respondentPhone": {
+      "type": "string"
+    },
+    "husbandAddress": {
       "type": "string"
     },
     "state": {
