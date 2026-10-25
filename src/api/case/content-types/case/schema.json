@@ -71,7 +71,7 @@
       "type": "string"
     },
     "description": {
-      "type": "string"
+      "type": "text"
     },
     "user": {
       "type": "email"
