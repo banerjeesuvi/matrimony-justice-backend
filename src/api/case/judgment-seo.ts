@@ -49,6 +49,7 @@ type CaseRow = {
   petitioner?: string | null;
   respondent?: string | null;
   judgmentPassed?: string | null;
+  stage?: string | null;
   district?: string | null;
   state?: string | null;
   courtComplex?: string | null;
@@ -145,24 +146,37 @@ function selectedParty(value: unknown) {
   return party === "husband" || party === "wife" ? party : "";
 }
 
+function isCompletedStage(value: unknown) {
+  return clean(value).toLowerCase() === "completed";
+}
+
+const INDEX_FOLLOW = "index, follow";
+
 /** Merge the party SEO into the document write before Strapi saves it. */
 export async function prepareCaseJudgmentSeo(strapi, params) {
   const data = params?.data;
   if (!data || typeof data !== "object") return;
-  if (!Object.prototype.hasOwnProperty.call(data, "judgmentPassed")) return;
-  if (!selectedParty(data.judgmentPassed)) return;
+  const touchesParty = Object.prototype.hasOwnProperty.call(data, "judgmentPassed");
+  const touchesStage = Object.prototype.hasOwnProperty.call(data, "stage");
+  if (!touchesParty && !touchesStage) return;
 
   const documentId = clean(params.documentId);
   const existing = documentId ? await loadCase(strapi, documentId, params.status) : null;
-  const copy = judgmentSeoCopy({
-    petitioner: clean(data.petitioner) || existing?.petitioner,
-    respondent: clean(data.respondent) || existing?.respondent,
-    judgmentPassed: data.judgmentPassed,
-    district: clean(data.district) || existing?.district,
-    state: clean(data.state) || existing?.state,
-    courtComplex: clean(data.courtComplex) || existing?.courtComplex,
-    documentId: documentId || existing?.documentId,
-  });
+  const party = selectedParty(touchesParty ? data.judgmentPassed : existing?.judgmentPassed);
+  const completed = isCompletedStage(touchesStage ? data.stage : existing?.stage);
+  if (!party && !completed) return;
+
+  const copy = party
+    ? judgmentSeoCopy({
+        petitioner: clean(data.petitioner) || existing?.petitioner,
+        respondent: clean(data.respondent) || existing?.respondent,
+        judgmentPassed: party,
+        district: clean(data.district) || existing?.district,
+        state: clean(data.state) || existing?.state,
+        courtComplex: clean(data.courtComplex) || existing?.courtComplex,
+        documentId: documentId || existing?.documentId,
+      })
+    : null;
 
   const incoming: CaseSeo = data.seo && typeof data.seo === "object" ? data.seo : {};
   const stored = existing?.seo || {};
@@ -174,33 +188,36 @@ export async function prepareCaseJudgmentSeo(strapi, params) {
       : stored.structuredData && typeof stored.structuredData === "object"
         ? { ...stored.structuredData }
         : {};
-  structured.headline = copy.metaTitle;
-  structured.description = copy.metaDescription;
-  if (copy.url) {
-    structured.url = copy.url;
-    structured.mainEntityOfPage = copy.url;
+  if (copy) {
+    structured.headline = copy.metaTitle;
+    structured.description = copy.metaDescription;
+    if (copy.url) {
+      structured.url = copy.url;
+      structured.mainEntityOfPage = copy.url;
+    }
   }
   const metaImage = relationId(incoming.metaImage) ?? relationId(stored.metaImage);
   const ogImage = relationId(incomingGraph.ogImage) ?? relationId(storedGraph.ogImage);
+  const metaRobots = completed ? INDEX_FOLLOW : incoming.metaRobots || stored.metaRobots;
 
   data.seo = {
-    metaTitle: copy.metaTitle,
-    metaDescription: copy.metaDescription,
-    keywords: copy.keywords,
-    metaRobots: incoming.metaRobots || stored.metaRobots,
+    metaTitle: copy?.metaTitle || incoming.metaTitle || stored.metaTitle,
+    metaDescription: copy?.metaDescription || incoming.metaDescription || stored.metaDescription,
+    keywords: copy?.keywords || incoming.keywords || stored.keywords,
+    metaRobots,
     metaViewport: incoming.metaViewport || stored.metaViewport,
-    canonicalURL: copy.url || incoming.canonicalURL || stored.canonicalURL,
+    canonicalURL: copy?.url || incoming.canonicalURL || stored.canonicalURL,
     structuredData: structured,
     ...(metaImage ? { metaImage } : {}),
     openGraph: {
-      ogTitle: copy.metaTitle,
-      ogDescription: copy.metaDescription,
+      ogTitle: copy?.metaTitle || incomingGraph.ogTitle || storedGraph.ogTitle,
+      ogDescription: copy?.metaDescription || incomingGraph.ogDescription || storedGraph.ogDescription,
       ogType: incomingGraph.ogType || storedGraph.ogType || "article",
-      ogUrl: copy.url || incomingGraph.ogUrl || storedGraph.ogUrl,
+      ogUrl: copy?.url || incomingGraph.ogUrl || storedGraph.ogUrl,
       ...(ogImage ? { ogImage } : {}),
     },
   };
-  if (copy.slug) data.slug = copy.slug;
+  if (copy?.slug) data.slug = copy.slug;
 }
 
 /** Write the SEO text directly. Nested Open Graph fields are otherwise dropped. */
@@ -208,28 +225,30 @@ export async function persistCaseJudgmentSeo(strapi, documentId: string) {
   if (!documentId) return;
   for (const status of ["draft", "published"] as const) {
     const entry = await loadCase(strapi, documentId, status, false);
-    if (!entry?.documentId || !selectedParty(entry.judgmentPassed)) continue;
-    const copy = judgmentSeoCopy(entry);
+    if (!entry?.documentId) continue;
+    const party = selectedParty(entry.judgmentPassed);
+    const completed = isCompletedStage(entry.stage);
+    if (!party && !completed) continue;
+    const copy = party ? judgmentSeoCopy(entry) : null;
     const seo = entry.seo;
     if (!seo?.id) continue;
+    const seoData: Record<string, string> = {};
+    if (copy && seo.metaTitle !== copy.metaTitle) seoData.metaTitle = copy.metaTitle;
+    if (copy && seo.metaDescription !== copy.metaDescription) seoData.metaDescription = copy.metaDescription;
+    if (copy && seo.keywords !== copy.keywords) seoData.keywords = copy.keywords;
+    if (completed && clean(seo.metaRobots).toLowerCase() !== INDEX_FOLLOW) {
+      seoData.metaRobots = INDEX_FOLLOW;
+    }
     let changed = false;
-    if (
-      seo.metaTitle !== copy.metaTitle ||
-      seo.metaDescription !== copy.metaDescription ||
-      seo.keywords !== copy.keywords
-    ) {
+    if (Object.keys(seoData).length) {
       await strapi.db.query("shared.seo").update({
         where: { id: seo.id },
-        data: {
-          metaTitle: copy.metaTitle,
-          metaDescription: copy.metaDescription,
-          keywords: copy.keywords,
-        },
+        data: seoData,
       });
       changed = true;
     }
     const og = seo.openGraph;
-    if (og?.id && (og.ogTitle !== copy.metaTitle || og.ogDescription !== copy.metaDescription)) {
+    if (copy && og?.id && (og.ogTitle !== copy.metaTitle || og.ogDescription !== copy.metaDescription)) {
       await strapi.db.query("shared.open-graph").update({
         where: { id: og.id },
         data: {
