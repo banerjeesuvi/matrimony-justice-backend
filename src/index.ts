@@ -9,6 +9,7 @@ import { seedPublicPages } from './seed/sample-public-pages';
 import { seedContactPage } from './seed/sample-contact';
 import { seedHelpCenter } from './seed/sample-help-center';
 import { smtpMailbox } from '../config/nodemailer';
+import { persistCaseJudgmentSeo, prepareCaseJudgmentSeo } from './api/case/judgment-seo';
 
 const AUTHENTICATED_ACTIONS = [
   'api::case.case.create',
@@ -221,6 +222,41 @@ async function persistOgImage(strapi, documentId, imgId) {
   }
 }
 
+function registerCaseJudgmentSeo(strapi) {
+  strapi.documents.use(async (context, next) => {
+    const isCase = context.uid === 'api::case.case';
+    if (
+      isCase &&
+      (context.action === 'create' || context.action === 'update') &&
+      context.params?.data
+    ) {
+      try {
+        await prepareCaseJudgmentSeo(strapi, context.params);
+      } catch (error) {
+        strapi.log.error('[case] Failed to prepare judgement SEO.');
+        strapi.log.error(error);
+      }
+    }
+    const result = await next();
+    if (
+      isCase &&
+      ['create', 'update', 'publish'].includes(context.action) &&
+      result &&
+      typeof result === 'object' &&
+      !Array.isArray(result) &&
+      result.documentId
+    ) {
+      try {
+        await persistCaseJudgmentSeo(strapi, result.documentId);
+      } catch (error) {
+        strapi.log.error('[case] Failed to persist judgement SEO.');
+        strapi.log.error(error);
+      }
+    }
+    return result;
+  });
+}
+
 function registerNewsArticleMiddleware(strapi) {
   strapi.documents.use(async (context, next) => {
     const isArticle = context.uid === 'api::news-article.news-article';
@@ -279,6 +315,7 @@ export default {
     };
 
     registerNewsArticleMiddleware(strapi);
+    registerCaseJudgmentSeo(strapi);
   },
 
   /**
