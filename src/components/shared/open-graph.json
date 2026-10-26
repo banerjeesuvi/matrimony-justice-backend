@@ -9,11 +9,11 @@
     "ogTitle": {
       "type": "string",
       "required": true,
-      "maxLength": 70
+      "maxLength": 120
     },
     "ogDescription": {
       "type": "string",
-      "maxLength": 200,
+      "maxLength": 320,
       "required": true
     },
     "ogImage": {
