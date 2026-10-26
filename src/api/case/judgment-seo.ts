@@ -1,8 +1,8 @@
 /**
  * Document Service middleware helper. Content-type lifecycles do not run
  * reliably for Strapi 5 document writes, so case SEO is updated here when
- * judgmentPassed is wife or husband, and share images are chosen from the wife's
- * photos when the case is a public judgement.
+ * judgmentPassed is wife or husband. Share images come from that party:
+ * the wife's photos when wife is selected, the husband's when husband is.
  */
 
 const SITE_ORIGIN = "https://www.matrimonyjustice.com";
@@ -57,6 +57,7 @@ type CaseRow = {
   state?: string | null;
   courtComplex?: string | null;
   petitionerPic?: unknown;
+  respondentPic?: unknown;
   seo?: CaseSeo | null;
 };
 
@@ -137,6 +138,7 @@ async function loadCase(
         status: nextStatus,
         populate: {
           petitionerPic: true,
+          respondentPic: true,
           seo: { populate: { metaImage: true, openGraph: { populate: { ogImage: true } } } },
         },
       });
@@ -171,7 +173,7 @@ function robotsFor(stage: unknown, result: unknown) {
   return isCompletedStage(stage) && isFalseAllegation(result) ? INDEX_FOLLOW : NOINDEX_FOLLOW;
 }
 
-type WifePhoto = { id: number; width: number; height: number };
+type PartyPhoto = { id: number; width: number; height: number };
 
 function asList(value: unknown): unknown[] {
   if (Array.isArray(value)) return value;
@@ -182,8 +184,8 @@ function asList(value: unknown): unknown[] {
   return [];
 }
 
-function wifePhotos(...sources: unknown[]): WifePhoto[] {
-  const photos = new Map<number, WifePhoto>();
+function partyPhotos(...sources: unknown[]): PartyPhoto[] {
+  const photos = new Map<number, PartyPhoto>();
   for (const source of sources) {
     for (const item of asList(source)) {
       const row =
@@ -200,9 +202,19 @@ function wifePhotos(...sources: unknown[]): WifePhoto[] {
   return [...photos.values()];
 }
 
+function photosForParty(
+  party: string,
+  record?: { petitionerPic?: unknown; respondentPic?: unknown } | null,
+  incoming?: { petitionerPic?: unknown; respondentPic?: unknown } | null,
+) {
+  if (party === "husband") return partyPhotos(incoming?.respondentPic, record?.respondentPic);
+  if (party === "wife") return partyPhotos(incoming?.petitionerPic, record?.petitionerPic);
+  return [];
+}
+
 /** Closest aspect ratio wins. Equal ratios keep the larger file. */
-function bestPhoto(photos: WifePhoto[], target: number) {
-  let best: WifePhoto | undefined;
+function bestPhoto(photos: PartyPhoto[], target: number) {
+  let best: PartyPhoto | undefined;
   let bestDistance = Infinity;
   let bestArea = -1;
   for (const photo of photos) {
@@ -268,12 +280,12 @@ export async function prepareCaseJudgmentSeo(strapi, params) {
   }
   const metaImageId = relationId(incoming.metaImage) ?? relationId(stored.metaImage);
   const ogImageId = relationId(incomingGraph.ogImage) ?? relationId(storedGraph.ogImage);
-  const sharePhotos =
-    metaRobots === INDEX_FOLLOW ? wifePhotos(data.petitionerPic, existing?.petitionerPic) : [];
+  const usePartyPhotos = metaRobots === INDEX_FOLLOW && Boolean(party);
+  const sharePhotos = usePartyPhotos ? photosForParty(party, existing, data) : [];
   const metaPick = bestPhoto(sharePhotos, META_IMAGE_RATIO);
   const ogPick = bestPhoto(sharePhotos, OG_IMAGE_RATIO);
-  const metaImage = metaPick?.id ?? metaImageId;
-  const ogImage = ogPick?.id ?? ogImageId;
+  const metaImage = usePartyPhotos ? (metaPick?.id ?? null) : metaImageId;
+  const ogImage = usePartyPhotos ? (ogPick?.id ?? null) : ogImageId;
 
   data.seo = {
     metaTitle: copy?.metaTitle || incoming.metaTitle || stored.metaTitle,
@@ -283,13 +295,13 @@ export async function prepareCaseJudgmentSeo(strapi, params) {
     metaViewport: incoming.metaViewport || stored.metaViewport,
     canonicalURL: copy?.url || incoming.canonicalURL || stored.canonicalURL,
     structuredData: structured,
-    ...(metaImage ? { metaImage } : {}),
+    ...(usePartyPhotos || metaImage ? { metaImage } : {}),
     openGraph: {
       ogTitle: copy?.metaTitle || incomingGraph.ogTitle || storedGraph.ogTitle,
       ogDescription: copy?.metaDescription || incomingGraph.ogDescription || storedGraph.ogDescription,
       ogType: incomingGraph.ogType || storedGraph.ogType || "article",
       ogUrl: copy?.url || incomingGraph.ogUrl || storedGraph.ogUrl,
-      ...(ogImage ? { ogImage } : {}),
+      ...(usePartyPhotos || ogImage ? { ogImage } : {}),
     },
   };
   if (copy?.slug) data.slug = copy.slug;
@@ -306,15 +318,18 @@ export async function persistCaseJudgmentSeo(strapi, documentId: string) {
     const copy = party ? judgmentSeoCopy(entry) : null;
     const seo = entry.seo;
     if (!seo?.id) continue;
-    const seoData: Record<string, string | number> = {};
+    const seoData: Record<string, string | number | null> = {};
     if (copy && seo.metaTitle !== copy.metaTitle) seoData.metaTitle = copy.metaTitle;
     if (copy && seo.metaDescription !== copy.metaDescription) seoData.metaDescription = copy.metaDescription;
     if (copy && seo.keywords !== copy.keywords) seoData.keywords = copy.keywords;
     if (clean(seo.metaRobots).toLowerCase() !== robots) seoData.metaRobots = robots;
-    const sharePhotos = robots === INDEX_FOLLOW ? wifePhotos(entry.petitionerPic) : [];
+    const usePartyPhotos = robots === INDEX_FOLLOW && Boolean(party);
+    const sharePhotos = usePartyPhotos ? photosForParty(party, entry) : [];
     const metaPick = bestPhoto(sharePhotos, META_IMAGE_RATIO);
     const ogPick = bestPhoto(sharePhotos, OG_IMAGE_RATIO);
-    if (metaPick && relationId(seo.metaImage) !== metaPick.id) seoData.metaImage = metaPick.id;
+    const nextMeta = usePartyPhotos ? (metaPick?.id ?? null) : undefined;
+    const nextOg = usePartyPhotos ? (ogPick?.id ?? null) : undefined;
+    if (usePartyPhotos && (relationId(seo.metaImage) ?? null) !== nextMeta) seoData.metaImage = nextMeta ?? null;
     let changed = false;
     if (Object.keys(seoData).length) {
       await strapi.db.query("shared.seo").update({
@@ -324,8 +339,8 @@ export async function persistCaseJudgmentSeo(strapi, documentId: string) {
       changed = true;
     }
     const og = seo.openGraph;
-    const ogData: Record<string, string | number> = {};
-    if (og?.id && ogPick && relationId(og.ogImage) !== ogPick.id) ogData.ogImage = ogPick.id;
+    const ogData: Record<string, string | number | null> = {};
+    if (usePartyPhotos && og?.id && (relationId(og.ogImage) ?? null) !== nextOg) ogData.ogImage = nextOg ?? null;
     if (copy && og?.id && og.ogTitle !== copy.metaTitle) ogData.ogTitle = copy.metaTitle;
     if (copy && og?.id && og.ogDescription !== copy.metaDescription) ogData.ogDescription = copy.metaDescription;
     if (og?.id && Object.keys(ogData).length) {
