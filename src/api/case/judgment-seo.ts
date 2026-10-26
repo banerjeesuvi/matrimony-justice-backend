@@ -50,6 +50,8 @@ type CaseRow = {
   respondent?: string | null;
   judgmentPassed?: string | null;
   stage?: string | null;
+  result?: string | null;
+  outcome?: string | null;
   district?: string | null;
   state?: string | null;
   courtComplex?: string | null;
@@ -150,7 +152,16 @@ function isCompletedStage(value: unknown) {
   return clean(value).toLowerCase() === "completed";
 }
 
+function isFalseAllegation(value: unknown) {
+  return clean(value).toLowerCase() === "false allegation confirmed";
+}
+
 const INDEX_FOLLOW = "index, follow";
+const NOINDEX_FOLLOW = "noindex, follow";
+
+function robotsFor(stage: unknown, result: unknown) {
+  return isCompletedStage(stage) && isFalseAllegation(result) ? INDEX_FOLLOW : NOINDEX_FOLLOW;
+}
 
 /** Merge the party SEO into the document write before Strapi saves it. */
 export async function prepareCaseJudgmentSeo(strapi, params) {
@@ -158,13 +169,18 @@ export async function prepareCaseJudgmentSeo(strapi, params) {
   if (!data || typeof data !== "object") return;
   const touchesParty = Object.prototype.hasOwnProperty.call(data, "judgmentPassed");
   const touchesStage = Object.prototype.hasOwnProperty.call(data, "stage");
-  if (!touchesParty && !touchesStage) return;
+  const touchesResult =
+    Object.prototype.hasOwnProperty.call(data, "result") ||
+    Object.prototype.hasOwnProperty.call(data, "outcome");
+  if (!touchesParty && !touchesStage && !touchesResult) return;
 
   const documentId = clean(params.documentId);
   const existing = documentId ? await loadCase(strapi, documentId, params.status) : null;
   const party = selectedParty(touchesParty ? data.judgmentPassed : existing?.judgmentPassed);
-  const completed = isCompletedStage(touchesStage ? data.stage : existing?.stage);
-  if (!party && !completed) return;
+  const stage = touchesStage ? data.stage : existing?.stage;
+  const result = touchesResult ? data.result ?? data.outcome : existing?.result ?? existing?.outcome;
+  const metaRobots = robotsFor(stage, result);
+  if (!party && !touchesStage && !touchesResult) return;
 
   const copy = party
     ? judgmentSeoCopy({
@@ -198,7 +214,6 @@ export async function prepareCaseJudgmentSeo(strapi, params) {
   }
   const metaImage = relationId(incoming.metaImage) ?? relationId(stored.metaImage);
   const ogImage = relationId(incomingGraph.ogImage) ?? relationId(storedGraph.ogImage);
-  const metaRobots = completed ? INDEX_FOLLOW : incoming.metaRobots || stored.metaRobots;
 
   data.seo = {
     metaTitle: copy?.metaTitle || incoming.metaTitle || stored.metaTitle,
@@ -227,8 +242,7 @@ export async function persistCaseJudgmentSeo(strapi, documentId: string) {
     const entry = await loadCase(strapi, documentId, status, false);
     if (!entry?.documentId) continue;
     const party = selectedParty(entry.judgmentPassed);
-    const completed = isCompletedStage(entry.stage);
-    if (!party && !completed) continue;
+    const robots = robotsFor(entry.stage, entry.result ?? entry.outcome);
     const copy = party ? judgmentSeoCopy(entry) : null;
     const seo = entry.seo;
     if (!seo?.id) continue;
@@ -236,9 +250,7 @@ export async function persistCaseJudgmentSeo(strapi, documentId: string) {
     if (copy && seo.metaTitle !== copy.metaTitle) seoData.metaTitle = copy.metaTitle;
     if (copy && seo.metaDescription !== copy.metaDescription) seoData.metaDescription = copy.metaDescription;
     if (copy && seo.keywords !== copy.keywords) seoData.keywords = copy.keywords;
-    if (completed && clean(seo.metaRobots).toLowerCase() !== INDEX_FOLLOW) {
-      seoData.metaRobots = INDEX_FOLLOW;
-    }
+    if (clean(seo.metaRobots).toLowerCase() !== robots) seoData.metaRobots = robots;
     let changed = false;
     if (Object.keys(seoData).length) {
       await strapi.db.query("shared.seo").update({
