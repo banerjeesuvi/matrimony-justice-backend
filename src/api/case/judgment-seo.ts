@@ -65,6 +65,21 @@ function clean(value: unknown) {
   return typeof value === "string" ? value.replace(/\s+/g, " ").trim() : "";
 }
 
+/** First non-empty value wins. Whitespace-only strings count as empty. */
+export function preferSeoText(...values: unknown[]) {
+  for (const value of values) {
+    const text = clean(value);
+    if (text) return text;
+  }
+  return "";
+}
+
+function asStructured(value: unknown): Record<string, unknown> {
+  return value && typeof value === "object" && !Array.isArray(value)
+    ? (value as Record<string, unknown>)
+    : {};
+}
+
 function relationId(value: unknown): number | undefined {
   if (typeof value === "number") return value;
   if (value && typeof value === "object" && "id" in value) {
@@ -264,15 +279,24 @@ export async function prepareCaseJudgmentSeo(strapi, params) {
   const stored = existing?.seo || {};
   const incomingGraph = incoming.openGraph || {};
   const storedGraph = stored.openGraph || {};
-  const structured: Record<string, unknown> =
-    incoming.structuredData && typeof incoming.structuredData === "object"
-      ? { ...incoming.structuredData }
-      : stored.structuredData && typeof stored.structuredData === "object"
-        ? { ...stored.structuredData }
-        : {};
+  const incomingStructured = asStructured(incoming.structuredData);
+  const storedStructured = asStructured(stored.structuredData);
+  const structured: Record<string, unknown> = incoming.structuredData
+    ? { ...incomingStructured }
+    : stored.structuredData
+      ? { ...storedStructured }
+      : {};
   if (copy) {
-    structured.headline = copy.metaTitle;
-    structured.description = copy.metaDescription;
+    structured.headline = preferSeoText(
+      incomingStructured.headline,
+      storedStructured.headline,
+      copy.metaTitle,
+    );
+    structured.description = preferSeoText(
+      incomingStructured.description,
+      storedStructured.description,
+      copy.metaDescription,
+    );
     if (copy.url) {
       structured.url = copy.url;
       structured.mainEntityOfPage = copy.url;
@@ -288,17 +312,25 @@ export async function prepareCaseJudgmentSeo(strapi, params) {
   const ogImage = usePartyPhotos ? (ogPick?.id ?? null) : ogImageId;
 
   data.seo = {
-    metaTitle: copy?.metaTitle || incoming.metaTitle || stored.metaTitle,
-    metaDescription: copy?.metaDescription || incoming.metaDescription || stored.metaDescription,
-    keywords: copy?.keywords || incoming.keywords || stored.keywords,
+    metaTitle: preferSeoText(incoming.metaTitle, stored.metaTitle, copy?.metaTitle),
+    metaDescription: preferSeoText(
+      incoming.metaDescription,
+      stored.metaDescription,
+      copy?.metaDescription,
+    ),
+    keywords: preferSeoText(incoming.keywords, stored.keywords, copy?.keywords),
     metaRobots,
     metaViewport: incoming.metaViewport || stored.metaViewport,
     canonicalURL: copy?.url || incoming.canonicalURL || stored.canonicalURL,
     structuredData: structured,
     ...(usePartyPhotos || metaImage ? { metaImage } : {}),
     openGraph: {
-      ogTitle: copy?.metaTitle || incomingGraph.ogTitle || storedGraph.ogTitle,
-      ogDescription: copy?.metaDescription || incomingGraph.ogDescription || storedGraph.ogDescription,
+      ogTitle: preferSeoText(incomingGraph.ogTitle, storedGraph.ogTitle, copy?.metaTitle),
+      ogDescription: preferSeoText(
+        incomingGraph.ogDescription,
+        storedGraph.ogDescription,
+        copy?.metaDescription,
+      ),
       ogType: incomingGraph.ogType || storedGraph.ogType || "article",
       ogUrl: copy?.url || incomingGraph.ogUrl || storedGraph.ogUrl,
       ...(usePartyPhotos || ogImage ? { ogImage } : {}),
@@ -307,7 +339,10 @@ export async function prepareCaseJudgmentSeo(strapi, params) {
   if (copy?.slug) data.slug = copy.slug;
 }
 
-/** Write the SEO text directly. Nested Open Graph fields are otherwise dropped. */
+/**
+ * Fill empty SEO text and keep robots/share images in sync. Nested Open Graph
+ * fields are otherwise dropped. Do not force generated copy over editor text.
+ */
 export async function persistCaseJudgmentSeo(strapi, documentId: string) {
   if (!documentId) return;
   for (const status of ["draft", "published"] as const) {
@@ -319,9 +354,9 @@ export async function persistCaseJudgmentSeo(strapi, documentId: string) {
     const seo = entry.seo;
     if (!seo?.id) continue;
     const seoData: Record<string, string | number | null> = {};
-    if (copy && seo.metaTitle !== copy.metaTitle) seoData.metaTitle = copy.metaTitle;
-    if (copy && seo.metaDescription !== copy.metaDescription) seoData.metaDescription = copy.metaDescription;
-    if (copy && seo.keywords !== copy.keywords) seoData.keywords = copy.keywords;
+    if (copy && !clean(seo.metaTitle)) seoData.metaTitle = copy.metaTitle;
+    if (copy && !clean(seo.metaDescription)) seoData.metaDescription = copy.metaDescription;
+    if (copy && !clean(seo.keywords)) seoData.keywords = copy.keywords;
     if (clean(seo.metaRobots).toLowerCase() !== robots) seoData.metaRobots = robots;
     const usePartyPhotos = robots === INDEX_FOLLOW && Boolean(party);
     const sharePhotos = usePartyPhotos ? photosForParty(party, entry) : [];
@@ -341,8 +376,8 @@ export async function persistCaseJudgmentSeo(strapi, documentId: string) {
     const og = seo.openGraph;
     const ogData: Record<string, string | number | null> = {};
     if (usePartyPhotos && og?.id && (relationId(og.ogImage) ?? null) !== nextOg) ogData.ogImage = nextOg ?? null;
-    if (copy && og?.id && og.ogTitle !== copy.metaTitle) ogData.ogTitle = copy.metaTitle;
-    if (copy && og?.id && og.ogDescription !== copy.metaDescription) ogData.ogDescription = copy.metaDescription;
+    if (copy && og?.id && !clean(og.ogTitle)) ogData.ogTitle = copy.metaTitle;
+    if (copy && og?.id && !clean(og.ogDescription)) ogData.ogDescription = copy.metaDescription;
     if (og?.id && Object.keys(ogData).length) {
       await strapi.db.query("shared.open-graph").update({
         where: { id: og.id },
