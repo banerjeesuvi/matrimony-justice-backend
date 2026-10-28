@@ -53,6 +53,9 @@ type CaseRow = {
   stage?: string | null;
   result?: string | null;
   outcome?: string | null;
+  caseNumber?: string | null;
+  legalFramework?: string | null;
+  sections?: string | null;
   district?: string | null;
   state?: string | null;
   courtComplex?: string | null;
@@ -65,19 +68,29 @@ function clean(value: unknown) {
   return typeof value === "string" ? value.replace(/\s+/g, " ").trim() : "";
 }
 
-/** First non-empty value wins. Whitespace-only strings count as empty. */
-export function preferSeoText(...values: unknown[]) {
-  for (const value of values) {
-    const text = clean(value);
-    if (text) return text;
-  }
-  return "";
+/** Strip "Case No." prefixes so titles can say `No. {number}` once. */
+function caseNumberLabel(value: unknown) {
+  const raw = clean(value);
+  if (!raw) return "";
+  return raw.replace(/^(case\s*)?(no\.?|number)\s*/i, "").replace(/^#\s*/, "");
 }
 
-function asStructured(value: unknown): Record<string, unknown> {
-  return value && typeof value === "object" && !Array.isArray(value)
-    ? (value as Record<string, unknown>)
-    : {};
+/**
+ * Compact section codes from the Case `sections` text field (e.g. 498A, 406).
+ * Does not invent an act when the field is empty.
+ */
+function sectionCodes(value: unknown) {
+  const raw = clean(value);
+  if (!raw) return [] as string[];
+  const codes: string[] = [];
+  const pattern = /\b(\d{2,4})(?:\s*\(([A-Za-z])\)|([A-Za-z])\b)?/g;
+  let match: RegExpExecArray | null;
+  while ((match = pattern.exec(raw))) {
+    const letter = (match[2] || match[3] || "").toUpperCase();
+    const code = `${match[1]}${letter}`;
+    if (!codes.includes(code)) codes.push(code);
+  }
+  return codes;
 }
 
 function relationId(value: unknown): number | undefined {
@@ -108,6 +121,9 @@ export function judgmentSeoCopy(entry: {
   petitioner?: string | null;
   respondent?: string | null;
   judgmentPassed?: unknown;
+  caseNumber?: string | null;
+  legalFramework?: string | null;
+  sections?: string | null;
   district?: string | null;
   state?: string | null;
   courtComplex?: string | null;
@@ -119,16 +135,37 @@ export function judgmentSeoCopy(entry: {
   const state = clean(entry.state);
   const location = [district, state].filter(Boolean).join(", ") || clean(entry.courtComplex) || "India";
   const places = [district, state].filter(Boolean);
+  const number = caseNumberLabel(entry.caseNumber);
+  const acts = sectionCodes(entry.sections);
+  const act = acts[0] || "";
+  const framework = clean(entry.legalFramework);
+  const titleParts = [
+    act && `(${act})`,
+    number && `No. ${number}`,
+  ].filter(Boolean);
+  const metaTitle = titleParts.length
+    ? `${name} Marriage Status & Matrimonial Case ${titleParts.join(" ")}`
+    : `${name} Marriage Status & Matrimonial Case Details`;
+  const actForProse = act && framework ? `${framework} ${act}` : act;
+  const detailBits = [
+    "including marriage status and matrimonial case details",
+    actForProse && `under ${actForProse}`,
+    number && `(case No. ${number})`,
+  ].filter(Boolean);
+  const metaDescription = `Explore verified public information about ${name}, ${detailBits.join(" ")}, court records, legal proceedings, and case information from ${location}.`;
+  const extras = [...acts, number, framework].filter(Boolean);
   const keywords = [
     name,
     ...KEYWORD_PHRASES.map((phrase) => `${name} ${phrase}`),
     ...places.map((place) => `${name} ${place}`),
+    ...extras.map((item) => `${name} ${item}`),
+    ...extras,
   ].join(", ");
   const slugName = slugify(name) || (husband ? "husband" : "wife");
   const slug = entry.documentId ? `${slugName}-${entry.documentId}` : "";
   return {
-    metaTitle: `${name} Marriage Status & Matrimonial Case Details`,
-    metaDescription: `Explore verified public information about ${name}, including relevant matrimonial case details, court records, legal proceedings, and case information from ${location}.`,
+    metaTitle,
+    metaDescription,
     keywords,
     slug,
     url: slug ? `${SITE_ORIGIN}/judgments/${slug}` : "",
@@ -268,6 +305,9 @@ export async function prepareCaseJudgmentSeo(strapi, params) {
         petitioner: clean(data.petitioner) || existing?.petitioner,
         respondent: clean(data.respondent) || existing?.respondent,
         judgmentPassed: party,
+        caseNumber: clean(data.caseNumber) || existing?.caseNumber,
+        legalFramework: clean(data.legalFramework) || existing?.legalFramework,
+        sections: clean(data.sections) || existing?.sections,
         district: clean(data.district) || existing?.district,
         state: clean(data.state) || existing?.state,
         courtComplex: clean(data.courtComplex) || existing?.courtComplex,
@@ -279,24 +319,15 @@ export async function prepareCaseJudgmentSeo(strapi, params) {
   const stored = existing?.seo || {};
   const incomingGraph = incoming.openGraph || {};
   const storedGraph = stored.openGraph || {};
-  const incomingStructured = asStructured(incoming.structuredData);
-  const storedStructured = asStructured(stored.structuredData);
-  const structured: Record<string, unknown> = incoming.structuredData
-    ? { ...incomingStructured }
-    : stored.structuredData
-      ? { ...storedStructured }
-      : {};
+  const structured: Record<string, unknown> =
+    incoming.structuredData && typeof incoming.structuredData === "object"
+      ? { ...incoming.structuredData }
+      : stored.structuredData && typeof stored.structuredData === "object"
+        ? { ...stored.structuredData }
+        : {};
   if (copy) {
-    structured.headline = preferSeoText(
-      incomingStructured.headline,
-      storedStructured.headline,
-      copy.metaTitle,
-    );
-    structured.description = preferSeoText(
-      incomingStructured.description,
-      storedStructured.description,
-      copy.metaDescription,
-    );
+    structured.headline = copy.metaTitle;
+    structured.description = copy.metaDescription;
     if (copy.url) {
       structured.url = copy.url;
       structured.mainEntityOfPage = copy.url;
@@ -312,25 +343,17 @@ export async function prepareCaseJudgmentSeo(strapi, params) {
   const ogImage = usePartyPhotos ? (ogPick?.id ?? null) : ogImageId;
 
   data.seo = {
-    metaTitle: preferSeoText(incoming.metaTitle, stored.metaTitle, copy?.metaTitle),
-    metaDescription: preferSeoText(
-      incoming.metaDescription,
-      stored.metaDescription,
-      copy?.metaDescription,
-    ),
-    keywords: preferSeoText(incoming.keywords, stored.keywords, copy?.keywords),
+    metaTitle: copy?.metaTitle || incoming.metaTitle || stored.metaTitle,
+    metaDescription: copy?.metaDescription || incoming.metaDescription || stored.metaDescription,
+    keywords: copy?.keywords || incoming.keywords || stored.keywords,
     metaRobots,
     metaViewport: incoming.metaViewport || stored.metaViewport,
     canonicalURL: copy?.url || incoming.canonicalURL || stored.canonicalURL,
     structuredData: structured,
     ...(usePartyPhotos || metaImage ? { metaImage } : {}),
     openGraph: {
-      ogTitle: preferSeoText(incomingGraph.ogTitle, storedGraph.ogTitle, copy?.metaTitle),
-      ogDescription: preferSeoText(
-        incomingGraph.ogDescription,
-        storedGraph.ogDescription,
-        copy?.metaDescription,
-      ),
+      ogTitle: copy?.metaTitle || incomingGraph.ogTitle || storedGraph.ogTitle,
+      ogDescription: copy?.metaDescription || incomingGraph.ogDescription || storedGraph.ogDescription,
       ogType: incomingGraph.ogType || storedGraph.ogType || "article",
       ogUrl: copy?.url || incomingGraph.ogUrl || storedGraph.ogUrl,
       ...(usePartyPhotos || ogImage ? { ogImage } : {}),
@@ -339,10 +362,7 @@ export async function prepareCaseJudgmentSeo(strapi, params) {
   if (copy?.slug) data.slug = copy.slug;
 }
 
-/**
- * Fill empty SEO text and keep robots/share images in sync. Nested Open Graph
- * fields are otherwise dropped. Do not force generated copy over editor text.
- */
+/** Write the SEO text directly. Nested Open Graph fields are otherwise dropped. */
 export async function persistCaseJudgmentSeo(strapi, documentId: string) {
   if (!documentId) return;
   for (const status of ["draft", "published"] as const) {
@@ -354,9 +374,9 @@ export async function persistCaseJudgmentSeo(strapi, documentId: string) {
     const seo = entry.seo;
     if (!seo?.id) continue;
     const seoData: Record<string, string | number | null> = {};
-    if (copy && !clean(seo.metaTitle)) seoData.metaTitle = copy.metaTitle;
-    if (copy && !clean(seo.metaDescription)) seoData.metaDescription = copy.metaDescription;
-    if (copy && !clean(seo.keywords)) seoData.keywords = copy.keywords;
+    if (copy && seo.metaTitle !== copy.metaTitle) seoData.metaTitle = copy.metaTitle;
+    if (copy && seo.metaDescription !== copy.metaDescription) seoData.metaDescription = copy.metaDescription;
+    if (copy && seo.keywords !== copy.keywords) seoData.keywords = copy.keywords;
     if (clean(seo.metaRobots).toLowerCase() !== robots) seoData.metaRobots = robots;
     const usePartyPhotos = robots === INDEX_FOLLOW && Boolean(party);
     const sharePhotos = usePartyPhotos ? photosForParty(party, entry) : [];
@@ -376,8 +396,8 @@ export async function persistCaseJudgmentSeo(strapi, documentId: string) {
     const og = seo.openGraph;
     const ogData: Record<string, string | number | null> = {};
     if (usePartyPhotos && og?.id && (relationId(og.ogImage) ?? null) !== nextOg) ogData.ogImage = nextOg ?? null;
-    if (copy && og?.id && !clean(og.ogTitle)) ogData.ogTitle = copy.metaTitle;
-    if (copy && og?.id && !clean(og.ogDescription)) ogData.ogDescription = copy.metaDescription;
+    if (copy && og?.id && og.ogTitle !== copy.metaTitle) ogData.ogTitle = copy.metaTitle;
+    if (copy && og?.id && og.ogDescription !== copy.metaDescription) ogData.ogDescription = copy.metaDescription;
     if (og?.id && Object.keys(ogData).length) {
       await strapi.db.query("shared.open-graph").update({
         where: { id: og.id },
