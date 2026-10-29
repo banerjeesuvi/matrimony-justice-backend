@@ -53,6 +53,9 @@ type CaseRow = {
   stage?: string | null;
   result?: string | null;
   outcome?: string | null;
+  caseNumber?: string | null;
+  legalFramework?: string | null;
+  sections?: string | null;
   district?: string | null;
   state?: string | null;
   courtComplex?: string | null;
@@ -63,6 +66,31 @@ type CaseRow = {
 
 function clean(value: unknown) {
   return typeof value === "string" ? value.replace(/\s+/g, " ").trim() : "";
+}
+
+/** Strip "Case No." prefixes so titles can say `No. {number}` once. */
+function caseNumberLabel(value: unknown) {
+  const raw = clean(value);
+  if (!raw) return "";
+  return raw.replace(/^(case\s*)?(no\.?|number)\s*/i, "").replace(/^#\s*/, "");
+}
+
+/**
+ * Compact section codes from the Case `sections` text field (e.g. 498A, 406).
+ * Does not invent an act when the field is empty.
+ */
+function sectionCodes(value: unknown) {
+  const raw = clean(value);
+  if (!raw) return [] as string[];
+  const codes: string[] = [];
+  const pattern = /\b(\d{2,4})(?:\s*\(([A-Za-z])\)|([A-Za-z])\b)?/g;
+  let match: RegExpExecArray | null;
+  while ((match = pattern.exec(raw))) {
+    const letter = (match[2] || match[3] || "").toUpperCase();
+    const code = `${match[1]}${letter}`;
+    if (!codes.includes(code)) codes.push(code);
+  }
+  return codes;
 }
 
 function relationId(value: unknown): number | undefined {
@@ -93,6 +121,9 @@ export function judgmentSeoCopy(entry: {
   petitioner?: string | null;
   respondent?: string | null;
   judgmentPassed?: unknown;
+  caseNumber?: string | null;
+  legalFramework?: string | null;
+  sections?: string | null;
   district?: string | null;
   state?: string | null;
   courtComplex?: string | null;
@@ -104,16 +135,37 @@ export function judgmentSeoCopy(entry: {
   const state = clean(entry.state);
   const location = [district, state].filter(Boolean).join(", ") || clean(entry.courtComplex) || "India";
   const places = [district, state].filter(Boolean);
+  const number = caseNumberLabel(entry.caseNumber);
+  const acts = sectionCodes(entry.sections);
+  const act = acts[0] || "";
+  const framework = clean(entry.legalFramework);
+  const titleParts = [
+    act && `(${act})`,
+    number && `No. ${number}`,
+  ].filter(Boolean);
+  const metaTitle = titleParts.length
+    ? `${name} Marriage Status & Matrimonial Case ${titleParts.join(" ")}`
+    : `${name} Marriage Status & Matrimonial Case Details`;
+  const actForProse = act && framework ? `${framework} ${act}` : act;
+  const detailBits = [
+    "including marriage status and matrimonial case details",
+    actForProse && `under ${actForProse}`,
+    number && `(case No. ${number})`,
+  ].filter(Boolean);
+  const metaDescription = `Explore verified public information about ${name}, ${detailBits.join(" ")}, court records, legal proceedings, and case information from ${location}.`;
+  const extras = [...acts, number, framework].filter(Boolean);
   const keywords = [
     name,
     ...KEYWORD_PHRASES.map((phrase) => `${name} ${phrase}`),
     ...places.map((place) => `${name} ${place}`),
+    ...extras.map((item) => `${name} ${item}`),
+    ...extras,
   ].join(", ");
   const slugName = slugify(name) || (husband ? "husband" : "wife");
   const slug = entry.documentId ? `${slugName}-${entry.documentId}` : "";
   return {
-    metaTitle: `${name} Marriage Status & Matrimonial Case Details`,
-    metaDescription: `Explore verified public information about ${name}, including relevant matrimonial case details, court records, legal proceedings, and case information from ${location}.`,
+    metaTitle,
+    metaDescription,
     keywords,
     slug,
     url: slug ? `${SITE_ORIGIN}/judgments/${slug}` : "",
@@ -253,6 +305,9 @@ export async function prepareCaseJudgmentSeo(strapi, params) {
         petitioner: clean(data.petitioner) || existing?.petitioner,
         respondent: clean(data.respondent) || existing?.respondent,
         judgmentPassed: party,
+        caseNumber: clean(data.caseNumber) || existing?.caseNumber,
+        legalFramework: clean(data.legalFramework) || existing?.legalFramework,
+        sections: clean(data.sections) || existing?.sections,
         district: clean(data.district) || existing?.district,
         state: clean(data.state) || existing?.state,
         courtComplex: clean(data.courtComplex) || existing?.courtComplex,
