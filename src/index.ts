@@ -10,6 +10,14 @@ import { seedContactPage } from './seed/sample-contact';
 import { seedHelpCenter } from './seed/sample-help-center';
 import { smtpMailbox } from '../config/nodemailer';
 import { persistCaseJudgmentSeo, prepareCaseJudgmentSeo } from './api/case/judgment-seo';
+import {
+  ensureOffTopicNoIndex,
+  hasRelevanceSignals,
+  isArticleMatrimonialRelevant,
+  normalizeMetaRobots,
+  OFF_TOPIC_META_ROBOTS,
+} from './api/news-article/matrimonialRelevance';
+import { errors } from '@strapi/utils';
 
 const AUTHENTICATED_ACTIONS = [
   'api::case.case.create',
@@ -146,6 +154,9 @@ function keepResetToken(strapi) {
  * 2. `seo.openGraph.ogImage` mirror: the content REST API silently drops
  *    media values nested two components deep, so the server copies the
  *    cover/metaImage id here on write.
+ *
+ * 3. Matrimonial relevance: reject off-topic creates; noindex off-topic
+ *    updates / first publish. Keyword list lives in matrimonialRelevance.ts.
  */
 function syncNewsArticleDerivedFields(data) {
   if (!data || typeof data !== 'object') return;
@@ -177,6 +188,79 @@ function syncNewsArticleDerivedFields(data) {
       og.ogImage = img;
       seo.openGraph = og;
     }
+  }
+}
+
+/**
+ * Create: ApplicationError so ingestion skips the item.
+ * Update: set noindex on off-topic writes (never delete). When the write has
+ * no title/body/SEO text, `stored` (fetched draft) is used to judge.
+ *
+ * Returns true when the caller should patch metaRobots via db after the
+ * document write (avoids replacing the whole SEO component on partial updates).
+ */
+function applyNewsMatrimonialGate(data, mode, stored = null) {
+  if (!data || typeof data !== 'object') {
+    return false;
+  }
+
+  const judgeFrom =
+    mode === 'update' && !hasRelevanceSignals(data) && stored
+      ? stored
+      : data;
+
+  if (mode === 'update' && !hasRelevanceSignals(judgeFrom)) return false;
+  if (isArticleMatrimonialRelevant(judgeFrom)) return false;
+
+  if (mode === 'create') {
+    throw new errors.ApplicationError(
+      'Off-topic news article rejected: Matrimony Justice only accepts Indian matrimonial and family-law topics (marriage, divorce, dowry, 498A/BNS 85-86, maintenance, custody, domestic violence, family courts, and similar).',
+    );
+  }
+
+  // Only mutate seo on the write when the client already sent an seo object;
+  // otherwise patch the component row after save so other SEO fields stay.
+  if (data.seo && typeof data.seo === 'object') {
+    ensureOffTopicNoIndex(data);
+    return false;
+  }
+  return true;
+}
+
+/**
+ * Force noindex on an existing article's SEO component when the stored copy
+ * is off-topic and metaRobots is missing or wrong. Direct query avoids
+ * recursing through document create/update.
+ */
+async function noIndexOffTopicArticle(strapi, documentId, preloaded = null) {
+  if (!documentId) return;
+  try {
+    const draft =
+      preloaded ||
+      (await strapi.documents('api::news-article.news-article').findOne({
+        documentId,
+        status: 'draft',
+        populate: { seo: true, content: true },
+      }));
+    if (!draft || isArticleMatrimonialRelevant(draft)) return;
+    const seo = draft.seo;
+    if (!seo?.id) {
+      strapi.log.warn(
+        `[news-article] Off-topic article ${documentId} has no SEO component to noindex.`,
+      );
+      return;
+    }
+    if (normalizeMetaRobots(seo.metaRobots) === OFF_TOPIC_META_ROBOTS) return;
+    await strapi.db.query('shared.seo').update({
+      where: { id: seo.id },
+      data: { metaRobots: OFF_TOPIC_META_ROBOTS },
+    });
+    strapi.log.info(
+      `[news-article] Set metaRobots=${OFF_TOPIC_META_ROBOTS} on off-topic ${documentId}.`,
+    );
+  } catch (error) {
+    strapi.log.error('[news-article] Failed to noindex off-topic article.');
+    strapi.log.error(error);
   }
 }
 
@@ -260,14 +344,50 @@ function registerCaseJudgmentSeo(strapi) {
 function registerNewsArticleMiddleware(strapi) {
   strapi.documents.use(async (context, next) => {
     const isArticle = context.uid === 'api::news-article.news-article';
+    let patchOffTopicNoIndex = false;
+    let storedForGate = null;
+
     if (
       isArticle &&
       (context.action === 'create' || context.action === 'update') &&
       context.params?.data
     ) {
       syncNewsArticleDerivedFields(context.params.data);
+
+      if (context.action === 'update' && context.params?.documentId) {
+        try {
+          storedForGate = await strapi
+            .documents('api::news-article.news-article')
+            .findOne({
+              documentId: context.params.documentId,
+              status: 'draft',
+              populate: { seo: true, content: true },
+            });
+        } catch {
+          storedForGate = null;
+        }
+      }
+
+      patchOffTopicNoIndex = applyNewsMatrimonialGate(
+        context.params.data,
+        context.action === 'create' ? 'create' : 'update',
+        storedForGate,
+      );
+    }
+    if (isArticle && context.action === 'publish' && context.params?.documentId) {
+      await noIndexOffTopicArticle(strapi, context.params.documentId);
     }
     const result = await next();
+    if (
+      isArticle &&
+      patchOffTopicNoIndex &&
+      result &&
+      typeof result === 'object' &&
+      !Array.isArray(result) &&
+      result.documentId
+    ) {
+      await noIndexOffTopicArticle(strapi, result.documentId, storedForGate);
+    }
     if (
       isArticle &&
       ['create', 'update', 'publish'].includes(context.action) &&
